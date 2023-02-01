@@ -1,4 +1,4 @@
-## Water PCB concentrations data analysis per site
+## Water PCB concentrations data analysis
 # Fox River
 
 # Install packages
@@ -353,7 +353,7 @@ fox.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.2$date, temp$Date)
 # Remove samples with temp = NA
 fox.tpcb.2 <- na.omit(fox.tpcb.2)
 
-# Regressions -------------------------------------------------------------
+# tPCB Regressions --------------------------------------------------------
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
 lr.fox.tpcb.t <- lm(log10(tPCB) ~ time, data = fox.tpcb.2)
@@ -507,7 +507,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (3) Perform Linear Mixed-Effects Model (LMEM)
+# (3) Perform Linear Mixed-Effects Model (lme)
 # (3.1) tPCB vs. time + season + flow + temp + site (fox.tpcb.2)
 tpcb <- fox.tpcb.2$tPCB
 time <- fox.tpcb.2$time
@@ -545,7 +545,7 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2c']
 time.coeff <- summary(lmem.fox.tpcb)$coef[2, "Estimate"]
 time.coeff.ste <- summary(lmem.fox.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
@@ -681,7 +681,7 @@ fox.pcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.pcb.2$
 fox.pcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.pcb.2$SampleDate, temp$Date)]
 # Remove samples with temperature = NA
 fox.pcb.2 <- fox.pcb.2[!is.na(fox.pcb.2$temp), ]
-# Remove PCB that have 45 or less values (45%)
+# Remove individual PCB that have 45% or less values
 fox.pcb.2[,colSums(is.na(fox.pcb.2)) > nrow(fox.pcb.2) - 45] <- NULL
 # Remove metadata
 fox.pcb.3 <- subset(fox.pcb.2, select = -c(SiteID:temp))
@@ -736,7 +736,7 @@ mlr.pcb <- cbind(congeners, mlr.pcb)
 write.csv(mlr.pcb, file = "Output/Data/MLRFoxPCB.csv")
 
 # LME for individual PCBs -------------------------------------------------
-# Create matrix to store data
+# Create matrix to store results
 lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 23)
 
 # Perform LME
@@ -787,6 +787,26 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/LmeFoxPCB.csv")
+
+# Get predicted values
+# Create matrix to store results
+lme.pcb.pred <- matrix(nrow = length(fox.pcb.3[1,]), ncol = length(fox.pcb.3[,1]))
+
+
+
+for (i in 1:length(fox.pcb.3[1,])) {
+  {for (j in 1:length(fox.pcb.3[,1]))
+  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb.pred[i,j] <- as.data.frame(fitted(fit))
+  }
+}
+
+
+
 
 # Plot individual congeners -----------------------------------------------
 ggplot(fox.pcb, aes(y = 10^(PCB5.8),
