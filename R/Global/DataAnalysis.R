@@ -80,7 +80,7 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   theme(axis.text.y = element_text(face = "bold", size = 3))
 
 # Total Concentration Analysis --------------------------------------------
-# Summary statistic of total PCBs in pg/L
+# Summary statistic of total PCB (congeners + Aroclor) in pg/L
 summary(rowSums(wdc.1, na.rm = T))
 
 # Histogram
@@ -134,53 +134,6 @@ ggplot(wdc.1, aes(x = "", y = rowSums(wdc.1, na.rm = T))) +
              size = 0.8) # associated with an incremental cancer risk of 10−6.
   
 # Individual congeners
-# (1) Aroclor + congeners
-# Remove metadata
-{wdc.cong.t <- subset(wdc, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-wdc.cong.t <- subset(wdc.cong.t, select = -c(A1016:A1260))
-# Summary statistic of individual congeners in pg/L
-summary(wdc.cong.t, na.rm = T, zero = T)
-# Get the max value for each congener
-cong.max.t <-as.numeric(sub('.*:', '',
-                          summary(wdc.cong.t, na.rm = T,
-                                  zero = T)[6,]))
-  }
-
-# Obtain the median for each individual congener
-cong.median.t <- as.numeric(sub('.*:',
-                              '', summary(wdc.cong.t, na.rm = T,
-                                          zero = T)[3,]))
-
-# Individual PCB boxplot (# to remove congener numbers in the x-axis for plotting purposes)
-ggplot(stack(wdc.1), aes(x = ind, y = values)) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  geom_boxplot(width = 0.6, outlier.colour = "#66ccff", col = "#66ccff",
-               outlier.shape = 1) +
-  scale_x_discrete(labels = wdc.cong.freq$congener) + # use to change the "." to "+"
-  theme_bw() +
-  theme(aspect.ratio = 25/135) +
-  xlab(expression("")) +
-  ylab(expression(bold("PCB congener concentration (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 8,
-                                   color = "black"),
-        axis.title.y = element_text(face = "bold", size = 8,
-                                    color = "black")) +
-  #theme(axis.text.x = element_text(face = "bold", size = 6,
-  #                                 angle = 60, hjust = 1,
-  #                                 color = "black"),
-  #      axis.title.x = element_text(face = "bold", size = 8)) +
-  # theme(axis.ticks = element_line(size = 0.6, color = "black"), 
-  #      axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  theme(axis.text.x=element_blank(),
-        axis.ticks.x=element_blank())
-
-# (2) Congener data
 summary(wdc.cong.1, na.rm = T, zero = T)
 # Get the max value for each congener
 cong.max <-as.numeric(sub('.*:', '',
@@ -278,18 +231,17 @@ ggplot(wdc.pcb.sp, aes(x = factor(StateSampled, levels = sites),
   geom_hline(yintercept = 0.03, color = "#cc0000") # median 
 
 # Regression analysis and plots---------------------------------------------
-# Data preparation --------------------------------------------------------
 # Remove samples (rows) with total PCBs  = 0
 wdc.2 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
 # Calculate total PCB
 wdc.tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
 # Calculate total log PCB
 # Remove metadata
-wdc.log <- subset(wdc.2, select = -c(SampleID:AroclorCongener))
+wdc.3 <- subset(wdc.2, select = -c(SampleID:AroclorCongener))
 # Remove Aroclor data
-wdc.log <- subset(wdc.log, select = -c(A1016:A1260))
+wdc.3 <- subset(wdc.3, select = -c(A1016:A1260))
 # Log10 individual PCBs 
-wdc.log <- log10(wdc.log)
+wdc.log <- log10(wdc.3)
 # Replace -inf to NA
 wdc.log <- do.call(data.frame,
                    lapply(wdc.log,
@@ -316,6 +268,7 @@ wdc.tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
 colnames(wdc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
                         "tPCB", "logtPCB", "time", "site.code", "season")
 
+# Plots -------------------------------------------------------------------
 # (1) Histograms
 # (1.1) tPCB
 hist(wdc.tpcb$tPCB)
@@ -398,6 +351,14 @@ ggplot(wdc.tpcb, aes(x = season, y = logtPCB)) +
               shape = 1, col = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
+
+# Regressions -------------------------------------------------------------
+# Get variables
+tpcb <- wdc.tpcb$tPCB
+log.tpcb <- wdc.tpcb$logtPCB
+time <- wdc.tpcb$time
+site <- wdc.tpcb$site.code
+season <- wdc.tpcb$season
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
 lr.wdc.tpcb.t <- lm(log10(tPCB) ~ time, data = wdc.tpcb)
@@ -478,13 +439,8 @@ qqline(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (3) Perform Linear Mixed-Effects Model (LMEM)
+# (3) Perform Linear Mixed-Effects Model (lme)
 # (3.1) tPCB vs. time + season + site (wdc.tpcb)
-tpcb <- wdc.tpcb$tPCB
-time <- wdc.tpcb$time
-site <- wdc.tpcb$site.code
-season <- wdc.tpcb$season
-
 lmem.wdc.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -539,8 +495,6 @@ plot(wdc.tpcb$predicted, res.wdc.tpcb)
 abline(0, 0)
 
 # (3.2) log.tPCB vs. time + season + site (wdc.log.tpcb)
-log.tpcb <- wdc.tpcb$logtPCB
-
 lmem.wdc.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + (1|site),
                           REML = FALSE,
                           control = lmerControl(check.nobs.vs.nlev = "ignore",
