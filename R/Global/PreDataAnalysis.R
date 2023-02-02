@@ -94,7 +94,6 @@ mean(location.replic$`#`)
 hist(tpcb$tPCB)
 hist(log10(tpcb$tPCB))
 # (1.2) log.tPCB
-
 hist(log.tpcb$logtPCB)
 hist(log10(log.tpcb$logtPCB))
 
