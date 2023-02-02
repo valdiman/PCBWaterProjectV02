@@ -790,22 +790,27 @@ write.csv(lme.pcb, file = "Output/Data/LmeFoxPCB.csv")
 
 # Get predicted values
 # Create matrix to store results
-lme.pcb.pred <- matrix(nrow = length(fox.pcb.3[1,]), ncol = length(fox.pcb.3[,1]))
+lme.pcb.pred <- matrix(nrow = length(fox.pcb.3[,1]), 
+                       ncol = length(fox.pcb.3[1,]))
 
 
-
-for (i in 1:length(fox.pcb.3[1,])) {
-  {for (j in 1:length(fox.pcb.3[,1]))
-  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+for (j in 1:length(fox.pcb.3[1,])){
+  fit <- lmer(fox.pcb.3[,j] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
                                     check.nobs.vs.nRE="ignore"))
-  lme.pcb.pred[i,j] <- as.data.frame(fitted(fit))
-  }
+  lme.pcb.pred[,j] <- data.frame(fitted(fit))
 }
 
 
+fit <- lmer(fox.pcb.3[,51] ~ 1 + time + flow + temper + season + (1|site),
+            REML = FALSE,
+            control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"))
+
+lme.pcb.pred[,51]  <- as.data.frame(fitted(fit))
 
 
 # Plot individual congeners -----------------------------------------------
