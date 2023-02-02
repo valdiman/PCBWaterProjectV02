@@ -627,7 +627,7 @@ ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 9),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
@@ -801,17 +801,17 @@ for (j in 1:length(fox.pcb.3[1,])){
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
                                     check.nobs.vs.nRE="ignore"))
-  lme.pcb.pred[,j] <- data.frame(fitted(fit))
+  lme.pcb.pred[,j] <- fitted(fit)
 }
 
 
-fit <- lmer(fox.pcb.3[,51] ~ 1 + time + flow + temper + season + (1|site),
+fit <- lmer(fox.pcb.3[,1] ~ 1 + time + flow + temper + season + (1|site),
             REML = FALSE,
             control = lmerControl(check.nobs.vs.nlev = "ignore",
                                   check.nobs.vs.rankZ = "ignore",
                                   check.nobs.vs.nRE="ignore"))
 
-lme.pcb.pred[,51]  <- as.data.frame(fitted(fit))
+lme.pcb.pred[,1]  <- as.matrix(fitted(fit))
 
 
 # Plot individual congeners -----------------------------------------------
