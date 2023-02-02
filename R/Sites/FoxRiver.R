@@ -415,7 +415,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.5) tPCB vs. flow (fox.tpcb.2)
+# (1.5) tPCB vs. flow
 lr.fox.tpcb.f <- lm(log10(tPCB) ~ flow, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.f)
@@ -430,7 +430,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.6) log.tPCB vs. flow (fox.log.tpcb.2)
+# (1.6) log.tPCB vs. flow
 lr.fox.log.tpcb.f <- lm(logtPCB ~ flow, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.f)
@@ -445,7 +445,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.7) tPCB vs. water temperature (fox.tpcb.2)
+# (1.7) tPCB vs. water temperature
 lr.fox.tpcb.te <- lm(log10(tPCB) ~ temp, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.te)
@@ -460,7 +460,7 @@ shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
-# (1.8) log.tPCB vs. temperature (fox.log.tpcb.2)
+# (1.8) log.tPCB vs. temperature
 lr.fox.log.tpcb.te <- lm(logtPCB ~ temp, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.te)
@@ -476,7 +476,7 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (2) MLR
-# (2.1) tPCB vs. time + season + flow + temp (fox.tpcb.2)
+# (2.1) tPCB vs. time + season + flow + temp
 mlr.fox.tpcb <- lm(log10(tPCB) ~ time + season + flow + temp, data = fox.tpcb.2)
 # See results
 summary(mlr.fox.tpcb)
@@ -490,8 +490,10 @@ qqline(res)
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
+# Predictions
+fit.mlr.values.fox.tpcb <- as.data.frame(predict(mlr.fox.tpcb))
 
-# (2.2) log.tPCB vs. time + season + flow + temp (fox.log.tpcb.2)
+# (2.2) log.tPCB vs. time + season + flow + temp. Best approach
 mlr.fox.log.tpcb <- lm(logtPCB ~ time + season + flow + temp,
                        data = fox.tpcb.2)
 # See results
@@ -508,14 +510,15 @@ shapiro.test(res)
 ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (lme)
-# (3.1) tPCB vs. time + season + flow + temp + site (fox.tpcb.2)
+# Get variables
 tpcb <- fox.tpcb.2$tPCB
+log.tpcb <- fox.tpcb.2$logtPCB
 time <- fox.tpcb.2$time
 site <- fox.tpcb.2$site.code
 season <- fox.tpcb.2$season
 flow <- fox.tpcb.2$flow
 tem <- fox.tpcb.2$temp
-
+# (3.1) tPCB vs. time + season + flow + temp + site
 lmem.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -549,9 +552,7 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + flow + temp + site (fox.tpcb.2)
-log.tpcb <- fox.tpcb.2$logtPCB
-
+# (3.2) log.tPCB vs. time + season + flow + temp + site
 lmem.fox.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + flow + tem + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -578,11 +579,11 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.fox.log.tpcb))[1, 'R2c']
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.fox.tpcb <- as.data.frame(fitted(lmem.fox.tpcb))
+fit.lme.values.fox.tpcb <- as.data.frame(fitted(lmem.fox.tpcb))
 # Add column name
-colnames(fit.values.fox.tpcb) <- c("predicted")
+colnames(fit.lme.values.fox.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-fox.tpcb.2$predicted <- 10^(fit.values.fox.tpcb$predicted)
+fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
@@ -609,14 +610,14 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
 abline(0, 0)}
 
 # (2) Get predicted values log.tpcb
-fit.values.fox.log.tpcb <- as.data.frame(fitted(lmem.fox.log.tpcb))
+fit.lme.values.fox.log.tpcb <- as.data.frame(fitted(lmem.fox.log.tpcb))
 # Add column name
-colnames(fit.values.fox.log.tpcb) <- c("predicted")
+colnames(fit.lme.values.fox.log.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-fox.log.tpcb.2$predicted <- fit.values.fox.log.tpcb$predicted
+fox.tpcb.2$predictedlog <- fit.lme.values.fox.log.tpcb$predicted
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(fox.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
+ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
   geom_point() +
   scale_x_continuous(limits = c(-2, 100)) +
   scale_y_continuous(limits = c(-2, 100)) +
@@ -635,8 +636,63 @@ ggplot(fox.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
   geom_abline(intercept = -2, slope = 1, col = "blue", size = 0.8) + # 2:1 line (factor of 2)
 
 # Plot residuals vs. predictions
-plot(fox.log.tpcb.2$predicted, res.fox.log.tpcb)
+plot(fox.tpcb.2$predictedlog, res.fox.log.tpcb)
 abline(0, 0)
+
+# Plot time series with mlr and lme predictions
+# create a data frame to storage data
+time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
+                                        ncol = 4))
+# Add name to columns
+colnames(time.serie.tpcb) <- c('date', 'tPCB', 'mlrtPCB', 'lmetPCB')
+# Add data
+time.serie.tpcb$date <- fox.tpcb.2$date
+time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
+time.serie.tpcb$mlrtPCB <- fit.mlr.values.fox.tpcb
+time.serie.tpcb$lmetPCB <- fit.lme.values.fox.tpcb
+# Change again the names
+colnames(time.serie.tpcb[,3]) <- c("mlrtPCB")
+colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
+
+# Plot
+ggplot(time.serie.tpcb) + 
+  #geom_point(aes(y = tPCB,
+   #              x = format(date,'%Y%m')), shape = 1, col = "#66ccff") +
+  geom_line(aes(y = 10^(mlrtPCB), x = format(date,'%Y%m'))) +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9))
+
+
+ggplot(fox.tpcb, aes(y = tPCB,
+                     x = format(date,'%Y'))) +
+  geom_point(shape = 1, col = "#66ccff") +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate('text', x = 5.8, y = 10^5,
+           label = expression("Fox River", colour = 'black',
+                              size = 4, fontface = 2))
+
+
 
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
