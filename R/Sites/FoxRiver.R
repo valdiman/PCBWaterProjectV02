@@ -639,61 +639,6 @@ ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
 plot(fox.tpcb.2$predictedlog, res.fox.log.tpcb)
 abline(0, 0)
 
-# Plot time series with mlr and lme predictions
-# create a data frame to storage data
-time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
-                                        ncol = 4))
-# Add name to columns
-colnames(time.serie.tpcb) <- c('date', 'tPCB', 'mlrtPCB', 'lmetPCB')
-# Add data
-time.serie.tpcb$date <- fox.tpcb.2$date
-time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
-time.serie.tpcb$mlrtPCB <- fit.mlr.values.fox.tpcb
-time.serie.tpcb$lmetPCB <- fit.lme.values.fox.tpcb
-# Change again the names
-colnames(time.serie.tpcb[,3]) <- c("mlrtPCB")
-colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
-
-# Plot
-ggplot(time.serie.tpcb) + 
-  #geom_point(aes(y = tPCB,
-   #              x = format(date,'%Y%m')), shape = 1, col = "#66ccff") +
-  geom_line(aes(y = 10^(mlrtPCB), x = format(date,'%Y%m'))) +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9))
-
-
-ggplot(fox.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 1, col = "#66ccff") +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate('text', x = 5.8, y = 10^5,
-           label = expression("Fox River", colour = 'black',
-                              size = 4, fontface = 2))
-
-
-
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
 # Prepare data.frame
