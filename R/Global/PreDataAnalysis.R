@@ -13,7 +13,7 @@ install.packages("lmerTest")
 install.packages("zoo")
 
 # Load libraries
-library(ggplot2)
+{library(ggplot2)
 library(scales) # function trans_breaks
 #library(gridExtra)
 #library(tidyverse)
@@ -25,69 +25,76 @@ library(lme4) # performs lme
 library(MuMIn) # gets Rs from lme
 library(lmerTest) # gets the p-value from lme
 library(zoo) # yields seasons
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc.0 <- read.csv("WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # (I) Entire data ---------------------------------------------------------
 # Prepare data -----------------------------------------------------------
-# (1) Calculate total PCB per sample
-tpcb <- rowSums(wdc.0[, c(14:117)], na.rm = T)
+# Remove samples (rows) with total PCBs  = 0
+wdc.2 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
+# Calculate total PCB
+wdc.tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
+# Calculate total log PCB
+# Remove metadata
+wdc.3 <- subset(wdc.2, select = -c(SampleID:AroclorCongener))
+# Remove Aroclor data
+wdc.3 <- subset(wdc.3, select = -c(A1016:A1260))
+# Log10 individual PCBs 
+wdc.log <- log10(wdc.3)
+# Replace -inf to NA
+wdc.log <- do.call(data.frame,
+                   lapply(wdc.log,
+                          function(x) replace(x, is.infinite(x), NA)))
+
+# Sum individual log 10 PCBs
+wdc.log.tpcb <- rowSums(wdc.log, na.rm = T)
 # Change date format
-wdc.0$SampleDate <- as.Date(wdc.0$SampleDate, format = "%m/%d/%y")
+wdc.2$SampleDate <- as.Date(wdc.2$SampleDate, format = "%m/%d/%y")
 # Calculate sampling time
-time.day <- data.frame(as.Date(wdc.0$SampleDate) - min(as.Date(wdc.0$SampleDate)))
+time.day <- data.frame(as.Date(wdc.2$SampleDate) - min(as.Date(wdc.2$SampleDate)))
+# Create individual code for each site sampled
+site.numb <- wdc.2$SiteID %>% as.factor() %>% as.numeric
 # Include season
-yq <- as.yearqtr(as.yearmon(wdc.0$SampleDate, "%m/%d/%Y") + 1/12)
-season <- factor(format(yq, "%q"), levels = 1:4,
-                 labels = c("0", "s-1", "s-2", "s-3")) # winter, spring, summer, fall
+yq.s <- as.yearqtr(as.yearmon(wdc.2$SampleDate, "%m/%d/%Y") + 1/12)
+season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
 # Create data frame
-tpcb <- cbind(wdc.0$SiteName, wdc.0$LocationID, wdc.0$SampleDate,
-              as.matrix(tpcb), data.frame(time.day), season)
-# Add names to columns
-colnames(tpcb) <- c("Site", "LocationID", "date", "tPCB", "time", "season")
+wdc.tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
+                  wdc.2$Latitude, wdc.2$Longitude, as.matrix(wdc.tpcb),
+                  as.matrix(wdc.log.tpcb), data.frame(time.day),
+                  site.numb, season.s)
+# Add column names
+colnames(wdc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                        "tPCB", "logtPCB", "time", "site.code", "season")
+
 # Number of sites
-num.site <- aggregate(tpcb$Site, by = list(tpcb$Site), FUN = length)
+num.site <- aggregate(wdc.tpcb$SiteID, by = list(wdc.tpcb$SiteID), FUN = length)
 # Add names to the columns
 colnames(num.site) <- c("Site Name", "#")
-# Number of sampling location replicates 
-loc.replic <- aggregate(tpcb$LocationID, by = list(tpcb$LocationID), FUN = length)
+# Number of site replicates 
+site.replic <- aggregate(wdc.tpcb$SiteID, by = list(wdc.tpcb$SiteID), FUN = length)
 # Add names to the columns
-colnames(loc.replic) <- c("Location ID", "#")
-median(loc.replic$`#`)
-# Number of sampling replicates
-sampling.replic <- aggregate(wdc.0$SampleID, by = list(wdc.0$SampleID),
+colnames(site.replic) <- c("SiteID", "#")
+median(site.replic$`#`)
+# Number of locations replicates
+location.replic <- aggregate(wdc$LocationName, by = list(wdc$LocationName),
                              FUN = length)
 # Add names to the columns
-colnames(sampling.replic) <- c("Sample ID", "#")
-mean(sampling.replic$`#`)
-
-# (2) Calculate total log PCB per sample
-# Remove metadata
-log.pcb <- subset(wdc.0, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-log.pcb <- subset(log.pcb, select = -c(A1016:A1260))
-# Log 10 individual PCBs 
-log.pcb <- log10(log.pcb)
-# Replace -inf to NA
-t.log.pcb <- do.call(data.frame,
-               lapply(log.pcb,
-                      function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-t.log.pcb <- rowSums(t.log.pcb, na.rm = T)
-# Generate data.frame for analysis and plots
-log.tpcb <- cbind(wdc.0$SiteName, wdc.0$LocationID, wdc.0$SampleDate,
-                  as.matrix(t.log.pcb), data.frame(time.day), season)
-colnames(log.tpcb) <- c("Site", "LocationID", "date", "logtPCB", "time",
-                        "season")
+colnames(location.replic) <- c("LocationID", "#")
+mean(location.replic$`#`)
 
 # General plots -------------------------------------------------------
+
+# Reviewed until here!
 # (1) Histograms
 # (1.1) tpcb
 hist(tpcb$tPCB)
 hist(log10(tpcb$tPCB))
 # (1.2) log.tPCB
+
 hist(log.tpcb$logtPCB)
 hist(log10(log.tpcb$logtPCB))
 
@@ -200,7 +207,6 @@ ggplot(tpcb, aes(x = format(date,'%Y'), y = tPCB)) +
   geom_hline(yintercept = 0.064*1000, color = "#CC6666",
              size = 0.8) # associated with an incremental cancer risk of 10−6.
 
-  
 # (4.2) log.tPCB
 ggplot(log.tpcb, aes(x = format(date,'%Y'), y = logtPCB)) +
   xlab("") +
