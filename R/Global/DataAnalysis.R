@@ -203,7 +203,6 @@ ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
   geom_hline(yintercept = 0.064*1000, color = "#CC6666",
              size = 0.8) # associated with an incremental cancer risk of 10−6.
 
-
 # Selected StateSampled and individual PCB congener
 wdc.pcb.sp <- subset(wdc, select = c(StateSampled, PCB4.10))
 
