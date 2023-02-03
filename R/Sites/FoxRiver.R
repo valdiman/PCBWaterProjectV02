@@ -541,6 +541,7 @@ qqline(res.fox.tpcb)}
 shapiro.test(res.fox.tpcb)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.fox.tpcb))[1,'sdcor']
 # Extract R2 no random effect
 R2.nre <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2m']
 # Extract R2 with random effect
@@ -770,12 +771,12 @@ colnames(mlr.pcb) <- c("intercept", "intercep.error", "intercept.pv",
                        "season3.error", "season3.pv", "t0.5", "t0.5.error",
                        "R2.adj")
 # Just 3 significant figures
-mlr.pcbi <- formatC(signif(mlr.pcb, digits = 3))
+mlr.pcb <- formatC(signif(mlr.pcb, digits = 3))
 # Add congener names
 congeners <- colnames(fox.pcb.3)
 mlr.pcb <- cbind(congeners, mlr.pcb)
 # Export results
-write.csv(mlr.pcb, file = "Output/Data/MLRFoxPCB.csv")
+write.csv(mlr.pcb, file = "Output/Data/csv/mlrFoxPCB.csv")
 
 # LME for individual PCBs -------------------------------------------------
 # Create matrix to store results
@@ -828,7 +829,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                            "RandonEffectSiteStdDev", "R2nR", "R2R")
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/LmeFoxPCB.csv")
+write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
 
 # Get predicted values
 # Create matrix to store results
