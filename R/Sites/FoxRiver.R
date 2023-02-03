@@ -13,6 +13,7 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages("reshape")
 
 # Load libraries
 {library(ggplot2)
@@ -26,6 +27,7 @@ library(MuMIn) # gets Rs from lme
 library(lmerTest) # gets the p-value from lme
 library(zoo) # yields seasons
 library(dataRetrieval) # read data from USGS
+library(reshape)
 }
 
 # Read data ---------------------------------------------------------------
@@ -638,6 +640,45 @@ ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
 # Plot residuals vs. predictions
 plot(fox.tpcb.2$predictedlog, res.fox.log.tpcb)
 abline(0, 0)
+
+# Plot time series with mlr and lme predictions
+# Create a data frame to storage data
+time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
+                                        ncol = 4))
+# Add name to columns
+colnames(time.serie.tpcb) <- c('date', 'tPCB', 'mlrtPCB', 'lmetPCB')
+# Add data
+time.serie.tpcb$date <- fox.tpcb.2$date
+time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
+time.serie.tpcb$mlrtPCB <- 10^(fit.mlr.values.fox.tpcb)
+time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.fox.tpcb)
+# Change again the names
+colnames(time.serie.tpcb[,3]) <- c("mlrtPCB")
+colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
+# Change data.frame format to be plotted
+time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
+
+#Plot
+ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
+  geom_point(aes(shape = variable, color = variable, size = variable)) +
+  scale_shape_manual(values = c(1, 3, 4)) +
+  scale_color_manual(values = c('#66ccff','#8856a7', '#b2df8a')) +
+  scale_size_manual(values = c(2.5, 2, 2)) +
+  scale_y_log10(limits = c(10, 10000)) +
+  xlab("") +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotation_logticks(sides = "l",
+                      short = unit(0.5, "mm"),
+                      mid = unit(1.5, "mm"),
+                      long = unit(2, "mm"))
 
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
