@@ -737,7 +737,7 @@ site <- fox.pcb.2$site.numb
 
 # MLR for individual PCBs  ------------------------------------------------
 # Create matrix to storage results/coefficients
-mlr.pcb <- matrix(nrow = length(fox.pcb.3), ncol = 21)
+mlr.pcb <- matrix(nrow = length(fox.pcb.3), ncol = 22)
 
 for(i in 1:length(fox.pcb.3)) {
   fit.mlr <- lm(fox.pcb.3[,i] ~ time + flow + temper + season)
@@ -762,14 +762,16 @@ for(i in 1:length(fox.pcb.3)) {
   mlr.pcb[i,19] <- -log(2)/mlr.pcb[i,4]/365 # t0.5
   mlr.pcb[i,20] <- abs(-log(2)/mlr.pcb[i,4]/365)*mlr.pcb[i,5]/abs(mlr.pcb[i,4]) # t0.5 error
   mlr.pcb[i,21] <- summary(fit.mlr)$adj.r.squared # R2 adj
+  mlr.pcb[i,22] <- shapiro.test(resid(fit.mlr))$p.value
 }
+
 # Add column names
 colnames(mlr.pcb) <- c("intercept", "intercep.error", "intercept.pv",
                        "time", "time.error", "time.pv", "flow", "flow.error",
                        "flow.pv", "temperature", "temperature.error", "temperature.pv",
                        "season2", "season2.error", "season2.pv", "season3",
                        "season3.error", "season3.pv", "t0.5", "t0.5.error",
-                       "R2.adj")
+                       "R2.adj", "Normality")
 # Just 3 significant figures
 mlr.pcb <- formatC(signif(mlr.pcb, digits = 3))
 # Add congener names
@@ -780,7 +782,7 @@ write.csv(mlr.pcb, file = "Output/Data/csv/mlrFoxPCB.csv")
 
 # LME for individual PCBs -------------------------------------------------
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 23)
+lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 24)
 
 # Perform LME
 for (i in 1:length(fox.pcb.3[1,])) {
@@ -812,6 +814,7 @@ for (i in 1:length(fox.pcb.3[1,])) {
     lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
     lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
     lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+    lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
     
 }
 
@@ -826,32 +829,66 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                            "temperature.error", "temperature.pv", "season2",
                            "season2.error", "season2, pv", "season3",
                            "season3.error", "season3.pv", "t05", "t05.error",
-                           "RandonEffectSiteStdDev", "R2nR", "R2R")
+                           "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
 
-# Get predicted values
+# Get predicted values for selected PCBs
+# PCB5+8
+# (1) mlr
+# (1.1) tPCB vs. time + season + flow + temp
+mlr.fox.pcbi <- lm(fox.pcb.3$PCB18.30 ~ time + season + flow + temp, data = fox.tpcb.2)
+# See results
+summary(mlr.fox.pcbi)
+# Look at residuals
+res <- resid(mlr.fox.pcbi) # get list of residuals
+# Create Q-Q plot for residuals
+qqnorm(res)
+# Add a straight diagonal line to the plot
+qqline(res)
+# Shapiro test
+shapiro.test(res)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res, 'pnorm')
+# Predictions
+fit.mlr.values.fox.tpcb <- as.data.frame(predict(mlr.fox.tpcb))
+
+# (2) lme
+# (2.1) tPCB vs. time + season + flow + temp
+lme.fox.pcbi <- lmer(fox.pcb.3$PCB67 ~ 1 + time + flow + temper + season +
+                       (1|site), REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"))
+
+# See results
+summary(lme.fox.pcbi)
+# Look at residuals
+res.lme.fox.pcbi <- resid(lme.fox.pcbi) # get list of residuals
+# Create Q-Q plot for residuals
+{qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 18+30")))
+  # Add a straight diagonal line to the plot
+  qqline(res.lme.fox.pcbi)}
+# Shapiro test
+shapiro.test(res.lme.fox.pcbi)
+# One-sample Kolmogorov-Smirnov test
+ks.test(res.lme.fox.pcbi, 'pnorm')
+
+# Modeling plots
+# (1) Get predicted values tpcb
+fit.lme.values.fox.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
+# Add column name
+colnames(fit.lme.values.fox.pcbi) <- c("predicted")
+# Add predicted values to data.frame
+#fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
+
 # Create matrix to store results
 lme.pcb.pred <- matrix(nrow = length(fox.pcb.3[,1]), 
                        ncol = length(fox.pcb.3[1,]))
 
 
-for (j in 1:length(fox.pcb.3[1,])){
-  fit <- lmer(fox.pcb.3[,j] ~ 1 + time + flow + temper + season + (1|site),
-              REML = FALSE,
-              control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                    check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"))
-  lme.pcb.pred[,j] <- fitted(fit)
-}
 
-
-fit <- lmer(fox.pcb.3[,1] ~ 1 + time + flow + temper + season + (1|site),
-            REML = FALSE,
-            control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                  check.nobs.vs.rankZ = "ignore",
-                                  check.nobs.vs.nRE="ignore"))
 
 lme.pcb.pred[,1]  <- as.matrix(fitted(fit))
 
