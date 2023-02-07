@@ -1,5 +1,5 @@
 ## Water PCB concentrations data analysis
-# Fox River
+## Fox River
 
 # Install packages
 install.packages("tidyverse")
@@ -16,18 +16,19 @@ install.packages("dataRetrieval")
 install.packages("reshape")
 
 # Load libraries
-{library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
-library(reshape)
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
 }
 
 # Read data ---------------------------------------------------------------
@@ -38,41 +39,43 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 fox.0 <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
 # Lake Winnebago is a background site.
 # Data preparation --------------------------------------------------------
-# Remove samples (rows) with total PCBs  = 0
-fox.1 <- fox.0[!(rowSums(fox.0[, c(14:117)], na.rm = TRUE)==0),]
-# Calculate total PCB
-tpcb.fox <- rowSums(fox.1[, c(14:117)], na.rm = T)
-# Calculate total log PCB
-# Remove metadata
-fox.log <- subset(fox.1, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-fox.log <- subset(fox.log, select = -c(A1016:A1260))
-# Log10 individual PCBs 
-fox.log <- log10(fox.log)
-# Replace -inf to NA
-fox.log <- do.call(data.frame,
+{
+  # Remove samples (rows) with total PCBs  = 0
+  fox.1 <- fox.0[!(rowSums(fox.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb.fox <- rowSums(fox.1[, c(14:117)], na.rm = T)
+  # Calculate total log PCB
+  # Remove metadata
+  fox.log <- subset(fox.1, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  fox.log <- subset(fox.log, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  fox.log <- log10(fox.log)
+  # Replace -inf to NA
+  fox.log <- do.call(data.frame,
                    lapply(fox.log,
                           function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-fox.log.tpcb <- rowSums(fox.log, na.rm = T)
-# Change date format
-fox.1$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(fox.1$SampleDate) - min(as.Date(fox.1$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- fox.1$SiteID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(fox.1$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-fox.tpcb <- cbind(factor(fox.1$SiteID), fox.1$SampleDate,
-                  fox.1$Latitude, fox.1$Longitude, as.matrix(tpcb.fox),
-                  as.matrix(fox.log.tpcb), data.frame(time.day),
-                  site.numb, season.s)
-# Add column names
-colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                        "tPCB", "logtPCB", "time", "site.code", "season")
+  # Sum individual log 10 PCBs
+  fox.log.tpcb <- rowSums(fox.log, na.rm = T)
+  # Change date format
+  fox.1$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(fox.1$SampleDate) - min(as.Date(fox.1$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- fox.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(fox.1$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  fox.tpcb <- cbind(factor(fox.1$SiteID), fox.1$SampleDate,
+                    fox.1$Latitude, fox.1$Longitude, as.matrix(tpcb.fox),
+                    as.matrix(fox.log.tpcb), data.frame(time.day),
+                    site.numb, season.s)
+  # Add column names
+  colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "logtPCB", "time", "site.code", "season")
+}
 
 # Get coordinates per site to plot in Google Earth
 fox.location <- fox.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
@@ -337,23 +340,26 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = logtPCB)) +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # Include USGS flow data --------------------------------------------------
-# Include flow data from USGS station Fox River
-sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
-sitefoxN2 <- "040851385" # water temperature @ FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
-# Codes to retrieve data
-paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C
-# Retrieve USGS data
-flow <- readNWISdv(sitefoxN1, paramflow,
-                   min(fox.tpcb.2$date), max(fox.tpcb.2$date))
-temp <- readNWISdv(sitefoxN2, paramtemp,
-                   min(fox.tpcb.2$date), max(fox.tpcb.2$date))
-# Add USGS data to fox.tpcb, matching dates, conversion to m3/s
-fox.tpcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.2$date,
-                                                                flow$Date)]
-fox.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.2$date, temp$Date)]
-# Remove samples with temp = NA
-fox.tpcb.2 <- na.omit(fox.tpcb.2)
+{
+  # Include flow data from USGS station Fox River
+  sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
+  sitefoxN2 <- "040851385" # water temperature @ FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  paramtemp <- "00010" # water temperature, C
+  # Retrieve USGS data
+  flow <- readNWISdv(sitefoxN1, paramflow,
+                     min(fox.tpcb.2$date), max(fox.tpcb.2$date))
+  temp <- readNWISdv(sitefoxN2, paramtemp,
+                     min(fox.tpcb.2$date), max(fox.tpcb.2$date))
+  # Add USGS data to fox.tpcb, matching dates, conversion to m3/s
+  fox.tpcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.2$date,
+                                                                         flow$Date)]
+  fox.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.2$date,
+                                                       temp$Date)]
+  # Remove samples with temp = NA
+  fox.tpcb.2 <- na.omit(fox.tpcb.2)
+}
 
 # tPCB Regressions --------------------------------------------------------
 # (1) Perform linear regression (lr)
@@ -362,11 +368,13 @@ lr.fox.tpcb.t <- lm(log10(tPCB) ~ time, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.t)
 # Look at residuals
-res <- resid(lr.fox.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.tpcb.t) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -377,11 +385,13 @@ lr.fox.log.tpcb.t <- lm(logtPCB ~ time, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.t)
 # Look at residuals
-res <- resid(lr.fox.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.log.tpcb.t) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -392,11 +402,13 @@ lr.fox.tpcb.s <- lm(log10(tPCB) ~ season, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.s)
 # Look at residuals
-res <- resid(lr.fox.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.tpcb.s) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -407,11 +419,13 @@ lr.fox.log.tpcb.s <- lm(logtPCB ~ season, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.s)
 # Look at residuals
-res <- resid(lr.fox.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.log.tpcb.s) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -422,11 +436,13 @@ lr.fox.tpcb.f <- lm(log10(tPCB) ~ flow, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.f)
 # Look at residuals
-res <- resid(lr.fox.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.tpcb.f) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -437,11 +453,13 @@ lr.fox.log.tpcb.f <- lm(logtPCB ~ flow, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.f)
 # Look at residuals
-res <- resid(lr.fox.log.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.log.tpcb.f) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -452,11 +470,13 @@ lr.fox.tpcb.te <- lm(log10(tPCB) ~ temp, data = fox.tpcb.2)
 # See results
 summary(lr.fox.tpcb.te)
 # Look at residuals
-res <- resid(lr.fox.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.tpcb.te) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -467,11 +487,13 @@ lr.fox.log.tpcb.te <- lm(logtPCB ~ temp, data = fox.tpcb.2)
 # See results
 summary(lr.fox.log.tpcb.te)
 # Look at residuals
-res <- resid(lr.fox.log.tpcb.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.fox.log.tpcb.te) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -483,11 +505,13 @@ mlr.fox.tpcb <- lm(log10(tPCB) ~ time + season + flow + temp, data = fox.tpcb.2)
 # See results
 summary(mlr.fox.tpcb)
 # Look at residuals
-res <- resid(mlr.fox.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(mlr.fox.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -501,11 +525,13 @@ mlr.fox.log.tpcb <- lm(logtPCB ~ time + season + flow + temp,
 # See results
 summary(mlr.fox.log.tpcb)
 # Look at residuals
-res <- resid(mlr.fox.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(mlr.fox.log.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -530,17 +556,21 @@ lmem.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
 # See results
 summary(lmem.fox.tpcb)
 # Look at residuals
-res.fox.tpcb <- resid(lmem.fox.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-{qqnorm(res.fox.tpcb, main = "log10(C)")
-qqnorm(res.fox.tpcb, main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                                 "PCB)")))
-# Add a straight diagonal line to the plot
-qqline(res.fox.tpcb)}
+{
+  res.fox.tpcb <- resid(lmem.fox.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.fox.tpcb, main = "log10(C)")
+  qqnorm(res.fox.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.fox.tpcb)
+}
 # Shapiro test
 shapiro.test(res.fox.tpcb)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
+# Randon effect site Std Dev
 RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.fox.tpcb))[1,'sdcor']
 # Extract R2 no random effect
 R2.nre <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2m']
@@ -565,12 +595,15 @@ lmem.fox.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + flow + tem + (1|site),
 # See results
 summary(lmem.fox.log.tpcb)
 # Look at residuals
-res.fox.log.tpcb <- resid(lmem.fox.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-{qqnorm(res.fox.log.tpcb, main = expression(paste("Normal Q-Q Plot", " (", Sigma,
-                                                 "log"[10]*"PCB)")))
-# Add a straight diagonal line to the plot
-qqline(res.fox.log.tpcb)}
+{
+  res.fox.log.tpcb <- resid(lmem.fox.log.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.fox.log.tpcb,
+         main = expression(paste("Normal Q-Q Plot", " (", Sigma,
+                                 "log"[10]*"PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.fox.log.tpcb)
+}
 # Shapiro test
 shapiro.test(res.fox.log.tpcb)
 # One-sample Kolmogorov-Smirnov test
@@ -644,22 +677,23 @@ abline(0, 0)
 
 # Plot time series with mlr and lme predictions
 # Create a data frame to storage data
-time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
-                                        ncol = 4))
-# Add name to columns
-colnames(time.serie.tpcb) <- c('date', 'tPCB', 'mlrtPCB', 'lmetPCB')
-# Add data
-time.serie.tpcb$date <- fox.tpcb.2$date
-time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
-time.serie.tpcb$mlrtPCB <- 10^(fit.mlr.values.fox.tpcb)
-time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.fox.tpcb)
-# Change again the names
-colnames(time.serie.tpcb[,3]) <- c("mlrtPCB")
-colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
-# Change data.frame format to be plotted
-time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
-
-#Plot
+{
+  time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
+                                          ncol = 4))
+  # Add name to columns
+  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'mlrtPCB', 'lmetPCB')
+  # Add data
+  time.serie.tpcb$date <- fox.tpcb.2$date
+  time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
+  time.serie.tpcb$mlrtPCB <- 10^(fit.mlr.values.fox.tpcb)
+  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.fox.tpcb)
+  # Change again the names
+  colnames(time.serie.tpcb[,3]) <- c("mlrtPCB")
+  colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
+  # Change data.frame format to be plotted
+  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
+}
+# Plot
 ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   geom_point(aes(shape = variable, color = variable, size = variable)) +
   scale_shape_manual(values = c(1, 3, 4)) +
@@ -842,11 +876,13 @@ mlr.fox.pcbi <- lm(fox.pcb.3$PCB18.30 ~ time + season + flow + temp, data = fox.
 # See results
 summary(mlr.fox.pcbi)
 # Look at residuals
-res <- resid(mlr.fox.pcbi) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(mlr.fox.pcbi) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # Shapiro test
 shapiro.test(res)
 # One-sample Kolmogorov-Smirnov test
@@ -865,11 +901,14 @@ lme.fox.pcbi <- lmer(fox.pcb.3$PCB67 ~ 1 + time + flow + temper + season +
 # See results
 summary(lme.fox.pcbi)
 # Look at residuals
-res.lme.fox.pcbi <- resid(lme.fox.pcbi) # get list of residuals
-# Create Q-Q plot for residuals
-{qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 18+30")))
+{
+  res.lme.fox.pcbi <- resid(lme.fox.pcbi) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 18+30")))
   # Add a straight diagonal line to the plot
-  qqline(res.lme.fox.pcbi)}
+  qqline(res.lme.fox.pcbi)
+}
+
 # Shapiro test
 shapiro.test(res.lme.fox.pcbi)
 # One-sample Kolmogorov-Smirnov test
