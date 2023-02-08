@@ -95,7 +95,7 @@ hist(fox.tpcb$logtPCB)
 # (2.1) tPCB
 ggplot(fox.tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point(shape = 1, col = "#66ccff") +
+  geom_point(shape = 16, size = 2, col = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -115,7 +115,7 @@ ggplot(fox.tpcb, aes(y = tPCB,
 # (2.2) log.tPCB
 ggplot(fox.tpcb, aes(y = logtPCB,
                          x = format(date,'%Y'))) +
-  geom_point(shape = 1, col = "#66ccff") +
+  geom_point(shape = 16, size = 2, col = "#66ccff") +
   xlab("") +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
@@ -150,7 +150,7 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
+              shape = 16, size = 2, col = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (3.2) log.tPCB
@@ -191,7 +191,7 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
+              shape = 16, size = 2, col = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (4.2) log.tPCB
@@ -570,7 +570,7 @@ summary(lmem.fox.tpcb)
 shapiro.test(res.fox.tpcb)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
-# Randon effect site Std Dev
+# Random effect site Std Dev
 RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.fox.tpcb))[1,'sdcor']
 # Extract R2 no random effect
 R2.nre <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2m']
@@ -623,7 +623,7 @@ fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point() +
+  geom_point(shape = 16, size = 3, col = "#66ccff") +
   scale_x_log10(limits = c(10, 1e4)) +
   scale_y_log10(limits = c(10, 1e4)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
@@ -639,11 +639,15 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
            size = 4, fontface = 2)
 
 # Plot residuals vs. predictions
-{plot(log10(fox.tpcb.2$predicted), res.fox.tpcb,
-     ylim = c(-1, 1),
-     xlab = "Preditions",
-     ylab = "Residual")
-abline(0, 0)}
+{
+  plot(log10(fox.tpcb.2$predicted), res.fox.tpcb,
+       points(log10(fox.tpcb.2$predicted), res.fox.tpcb, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted concentration ", Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  }
 
 # (2) Get predicted values log.tpcb
 fit.lme.values.fox.log.tpcb <- as.data.frame(fitted(lmem.fox.log.tpcb))
@@ -654,7 +658,7 @@ fox.tpcb.2$predictedlog <- fit.lme.values.fox.log.tpcb$predicted
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
-  geom_point() +
+  geom_point(shape = 16, size = 2, col = "#66ccff") +
   scale_x_continuous(limits = c(-2, 100)) +
   scale_y_continuous(limits = c(-2, 100)) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
@@ -667,9 +671,9 @@ ggplot(fox.tpcb.2, aes(x = logtPCB, y = predictedlog)) +
         axis.ticks.length = unit(0.2, "cm")) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  geom_abline(intercept = 2, slope = 1, col = "blue", size = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -2, slope = 1, col = "blue", size = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = 2, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -2, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
 
 # Plot residuals vs. predictions
 plot(fox.tpcb.2$predictedlog, res.fox.log.tpcb)
@@ -858,12 +862,12 @@ lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 lme.pcb <- cbind(congeners, lme.pcb)
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
-                           "Intercept.pv", "time", "time.error", "time.pv",
-                           "flow", "flow.error", "flow.pv", "temperature",
-                           "temperature.error", "temperature.pv", "season2",
-                           "season2.error", "season2, pv", "season3",
-                           "season3.error", "season3.pv", "t05", "t05.error",
-                           "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "flow", "flow.error", "flow.pv", "temperature",
+                       "temperature.error", "temperature.pv", "season2",
+                       "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
@@ -892,7 +896,7 @@ fit.mlr.values.fox.tpcb <- as.data.frame(predict(mlr.fox.tpcb))
 
 # (2) lme
 # (2.1) tPCB vs. time + season + flow + temp
-lme.fox.pcbi <- lmer(fox.pcb.3$PCB67 ~ 1 + time + flow + temper + season +
+lme.fox.pcbi <- lmer(fox.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
                        (1|site), REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                   check.nobs.vs.rankZ = "ignore",
@@ -904,7 +908,7 @@ summary(lme.fox.pcbi)
 {
   res.lme.fox.pcbi <- resid(lme.fox.pcbi) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 18+30")))
+  qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 17")))
   # Add a straight diagonal line to the plot
   qqline(res.lme.fox.pcbi)
 }
@@ -913,6 +917,24 @@ summary(lme.fox.pcbi)
 shapiro.test(res.lme.fox.pcbi)
 # One-sample Kolmogorov-Smirnov test
 ks.test(res.lme.fox.pcbi, 'pnorm')
+
+# (1) Get predicted values tpcb
+fit.lme.values.fox.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
+# Add column name
+colnames(fit.lme.values.fox.pcbi) <- c("predicted")
+# Add predicted values to data.frame
+fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.pcbi$predicted)
+
+# Plot residuals vs. predictions
+{
+  plot(fit.lme.values.fox.pcbi$predicted, res.lme.fox.pcbi,
+       points(fit.lme.values.fox.pcbi$predicted, res.lme.fox.pcbi, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted concentration PCB 17 (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+}
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -935,7 +957,7 @@ lme.pcb.pred[,1]  <- as.matrix(fitted(fit))
 # Plot individual congeners -----------------------------------------------
 ggplot(fox.pcb, aes(y = 10^(PCB5.8),
                      x = format(SampleDate,'%Y'))) +
-  geom_point(shape = 1, col = "#66ccff") +
+  geom_point(shape = 16, size =3, col = "#66ccff") +
   xlab("") +
   #scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
   #              labels = trans_format("log10", math_format(10^.x))) +
