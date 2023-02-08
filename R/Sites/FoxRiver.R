@@ -867,7 +867,6 @@ for (i in 1:length(fox.pcb.3[1,])) {
     lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
     lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
     lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
-    
 }
 
 # Just 3 significant figures
@@ -887,9 +886,8 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
 
 # Get predicted values for selected PCBs
-# PCB5+8
+# tPCB vs. time + season + flow + temp
 # (1) mlr
-# (1.1) tPCB vs. time + season + flow + temp
 mlr.fox.pcbi <- lm(fox.pcb.3$PCB17 ~ time + season + flow + temp, data = fox.tpcb.2)
 # See results
 summary(mlr.fox.pcbi)
@@ -909,7 +907,6 @@ ks.test(res, 'pnorm')
 fit.mlr.values.fox.pcbi <- as.data.frame(predict(mlr.fox.pcbi))
 
 # (2) lme
-# (2.1) tPCB vs. time + season + flow + temp
 lme.fox.pcbi <- lmer(fox.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
                        (1|site), REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -926,7 +923,6 @@ summary(lme.fox.pcbi)
   # Add a straight diagonal line to the plot
   qqline(res.lme.fox.pcbi)
 }
-
 # Shapiro test
 shapiro.test(res.lme.fox.pcbi)
 # One-sample Kolmogorov-Smirnov test
@@ -975,7 +971,7 @@ fox.pcbi$obs <- as.numeric(fox.pcbi$obs)
 # Modeling plots
 # Change data.frame format to be plotted
 fox.pcbi.2 <- melt(fox.pcbi, id.vars = c("date"))
-
+# Plot
 ggplot(fox.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
   geom_point(aes(shape = variable, color = variable, size = variable,
                  fill = variable)) +
