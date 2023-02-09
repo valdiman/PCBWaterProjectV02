@@ -37,50 +37,6 @@ install.packages("reshape")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
-# Data preparation --------------------------------------------------------
-# (1) All data, including 0s
-{
-  # Remove metadata
-  wdc.1 <- subset(wdc, select = -c(SampleID:AroclorCongener))
-  # Remove Aroclor data
-  wdc.1 <- subset(wdc.1, select = -c(A1016:A1260))
-}
-
-# Frequency analysis ------------------------------------------------------
-# Just congener data
-# Create a frequency detection plot
-{
-  wdc.cong.freq <- colSums(! is.na(wdc.cong.1) & (wdc.cong.1 !=0))/nrow(wdc.cong.1)
-  wdc.cong.freq <- data.frame(wdc.cong.freq)
-  colnames(wdc.cong.freq) <- c("PCB.frequency")
-  congener <- row.names(wdc.cong.freq)
-  wdc.cong.freq <- cbind(congener, wdc.cong.freq$PCB.frequency)
-  colnames(wdc.cong.freq) <- c("congener", "PCB.frequency")
-  wdc.cong.freq <- data.frame(wdc.cong.freq)
-  wdc.cong.freq$congener <- as.character(wdc.cong.freq$congener)
-  wdc.cong.freq$congener <- gsub('\\.', '+', wdc.cong.freq$congener) # replace dot for +
-  wdc.cong.freq$PCB.frequency <- as.numeric(as.character(wdc.cong.freq$PCB.frequency))
-  wdc.cong.freq$congener <- factor(wdc.cong.freq$congener,
-                                   levels = rev(wdc.cong.freq$congener)) # change the order to be plotted.
-}
-
-# Summary statistic of frequency of detection
-summary(wdc.cong.freq$PCB.frequency)
-
-# Frequency detection plot
-ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
-  geom_bar(stat = "identity", fill = "#66ccff") +
-  geom_vline(xintercept = 100*mean(wdc.cong.freq$PCB.frequency),
-             color = "red") +
-  ylab("") +
-  theme_bw() +
-  xlim(c(0,100)) +
-  theme(aspect.ratio = 20/5) +
-  xlab(expression(bold("Frequency detection (%)"))) +
-  theme(axis.text.x = element_text(face = "bold", size = 5),
-        axis.title.x = element_text(face = "bold", size = 5)) +
-  theme(axis.text.y = element_text(face = "bold", size = 3))
-
 # Total Concentration Analysis --------------------------------------------
 # Data preparation
 {
@@ -113,23 +69,14 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
-                wdc.2$Latitude, wdc.2$Longitude, as.matrix(tpcb),
+                wdc.2$Latitude, wdc.2$Longitude,
                 as.matrix(tpcb.log), data.frame(time.day),
                 site.numb, season.s)
   # Add column names
   colnames(tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                      "tPCB", "logtPCB", "time", "site.code",
+                      "logtPCB", "time", "site.code",
                       "season")
 }
-
-# Get coordinates per site to plot in Google Earth
-location <- tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
-# Average tPCB per site
-location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                      data = location, mean)
-
-# Summary statistic of total PCB (congeners + Aroclor) in pg/L
-summary(rowSums(wdc.1, na.rm = T))
 
 # Global plots ------------------------------------------------------------
 # Histogram
