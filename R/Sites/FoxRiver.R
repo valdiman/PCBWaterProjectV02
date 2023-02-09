@@ -888,7 +888,8 @@ write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
 # Get predicted values for selected PCBs
 # tPCB vs. time + season + flow + temp
 # (1) mlr
-mlr.fox.pcbi <- lm(fox.pcb.3$PCB17 ~ time + season + flow + temp, data = fox.tpcb.2)
+mlr.fox.pcbi <- lm(fox.pcb.3$PCB17 ~ time + season + flow + temp,
+                   data = fox.tpcb.2)
 # See results
 summary(mlr.fox.pcbi)
 # Look at residuals
