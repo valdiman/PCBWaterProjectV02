@@ -1,6 +1,6 @@
 ## Water PCB concentrations analysis.
 ## Data were obtained from EPA and contractors from PCB Superfund
-## sites in USA
+## sites in USA. Using log10 of the sum of PCB.
 
 # Install packages
 install.packages("tidyverse")
