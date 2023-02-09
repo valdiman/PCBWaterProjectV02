@@ -1,6 +1,7 @@
 ## Water PCB concentrations analysis.
 ## Data were obtained from EPA and contractors from PCB Superfund
-## sites in USA
+## sites in USA. Using log10 of individual PCBs and then sum them
+## to get total PCB.
 
 # Install packages
 install.packages("tidyverse")
@@ -102,8 +103,8 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   pcbi.log <- log10(pcbi)
   # Replace -inf to NA
   pcbi.log <- do.call(data.frame,
-                     lapply(pcbi.log,
-                            function(x) replace(x, is.infinite(x), NA)))
+                      lapply(pcbi.log,
+                             function(x) replace(x, is.infinite(x), NA)))
   # Sum individual log 10 PCBs
   tpcb.log <- rowSums(pcbi.log, na.rm = T)
   # Change date format
@@ -166,7 +167,7 @@ ggplot(tpcb, aes(x = "", y = tPCB)) +
              linewidth = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
   geom_hline(yintercept = 0.064*1000, color = "#CC6666",
              linewidth = 0.8) # associated with an incremental cancer risk of 10−6.
-  
+
 # Individual congeners
 summary(wdc.cong.1, na.rm = T, zero = T)
 # Get the max value for each congener
@@ -213,7 +214,7 @@ sites <- c("CA", "DE", "ID", "IN", "MA", "MD", "MI", "MO",
 
 # Total PCBs
 ggplot(wdc.2, aes(x = factor(StateSampled, levels = sites),
-                y = rowSums(wdc.2[, c(14:117)],  na.rm = T))) + 
+                  y = rowSums(wdc.2[, c(14:117)],  na.rm = T))) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -245,7 +246,7 @@ wdc.pcbi <- wdc.pcbi[!(wdc.pcbi[2] == 0), ]
 wdc.pcbi <- wdc.pcbi[!is.na(wdc.pcbi[2]),]
 # Plot
 ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
-                   y = PCB4.10)) + 
+                     y = PCB4.10)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -271,7 +272,7 @@ ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
 # (2) Time trend plots
 # (2.1) tPCB
 ggplot(tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
+                 x = format(date,'%Y'))) +
   geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   theme(aspect.ratio = 5/20) +
   xlab("") +
@@ -289,7 +290,7 @@ ggplot(tpcb, aes(y = tPCB,
 
 # (2.2) log.tPCB
 ggplot(tpcb, aes(y = logtPCB,
-                         x = format(date,'%Y'))) +
+                 x = format(date,'%Y'))) +
   geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   xlab("") +
   ylab(expression(bold(atop("Water Concentration",
@@ -444,10 +445,10 @@ ks.test(res, 'pnorm')
 # (3) Perform Linear Mixed-Effects Model (lme)
 # (3.1) tPCB vs. time + season + site
 lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE = "ignore"))
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
 
 # See results
 summary(lmem.tpcb)
@@ -517,14 +518,14 @@ ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
   abline(0, 0)
   abline(h = seq(-4, 4, 1), col = "grey")
   abline(v = seq(1, 6, 1), col = "grey")
-}
+  }
 
 # (3.2) log.tPCB vs. time + season + site (wdc.log.tpcb)
 lmem.log.tpcb <- lmer(log.tPCB ~ 1 + time + season + season + (1|site),
-                          REML = FALSE,
-                          control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                                check.nobs.vs.rankZ = "ignore",
-                                                check.nobs.vs.nRE="ignore"))
+                      REML = FALSE,
+                      control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                            check.nobs.vs.rankZ = "ignore",
+                                            check.nobs.vs.nRE="ignore"))
 
 # See results
 summary(lmem.log.tpcb)
