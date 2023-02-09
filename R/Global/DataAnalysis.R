@@ -14,52 +14,59 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages("reshape")
 
 # Load libraries
-{library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
 }
+
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv") # WaterDataConcentration
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Data preparation --------------------------------------------------------
 # (1) All data, including 0s
-# Remove metadata
-wdc.1 <- subset(wdc, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-wdc.1 <- subset(wdc.1, select = -c(A1016:A1260))
-# (2) Only consider congener data
-wdc.cong <- subset(wdc, AroclorCongener == "Congener")
-# Remove metadata
-wdc.cong.1 <- subset(wdc.cong, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-wdc.cong.1 <- subset(wdc.cong.1, select = -c(A1016:A1260))
+{
+  # Remove metadata
+  wdc.1 <- subset(wdc, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  wdc.1 <- subset(wdc.1, select = -c(A1016:A1260))
+  # (2) Only consider congener data
+  wdc.cong <- subset(wdc, AroclorCongener == "Congener")
+  # Remove metadata
+  wdc.cong.1 <- subset(wdc.cong, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  wdc.cong.1 <- subset(wdc.cong.1, select = -c(A1016:A1260))
+}
 
 # Frequency analysis ------------------------------------------------------
 # Just congener data
 # Create a frequency detection plot
-{wdc.cong.freq <- colSums(! is.na(wdc.cong.1) & (wdc.cong.1 !=0))/nrow(wdc.cong.1)
-wdc.cong.freq <- data.frame(wdc.cong.freq)
-colnames(wdc.cong.freq) <- c("PCB.frequency")
-congener <- row.names(wdc.cong.freq)
-wdc.cong.freq <- cbind(congener, wdc.cong.freq$PCB.frequency)
-colnames(wdc.cong.freq) <- c("congener", "PCB.frequency")
-wdc.cong.freq <- data.frame(wdc.cong.freq)
-wdc.cong.freq$congener <- as.character(wdc.cong.freq$congener)
-wdc.cong.freq$congener <- gsub('\\.', '+', wdc.cong.freq$congener) # replace dot for +
-wdc.cong.freq$PCB.frequency <- as.numeric(as.character(wdc.cong.freq$PCB.frequency))
-wdc.cong.freq$congener <- factor(wdc.cong.freq$congener,
-                            levels = rev(wdc.cong.freq$congener)) # change the order to be plotted.
+{
+  wdc.cong.freq <- colSums(! is.na(wdc.cong.1) & (wdc.cong.1 !=0))/nrow(wdc.cong.1)
+  wdc.cong.freq <- data.frame(wdc.cong.freq)
+  colnames(wdc.cong.freq) <- c("PCB.frequency")
+  congener <- row.names(wdc.cong.freq)
+  wdc.cong.freq <- cbind(congener, wdc.cong.freq$PCB.frequency)
+  colnames(wdc.cong.freq) <- c("congener", "PCB.frequency")
+  wdc.cong.freq <- data.frame(wdc.cong.freq)
+  wdc.cong.freq$congener <- as.character(wdc.cong.freq$congener)
+  wdc.cong.freq$congener <- gsub('\\.', '+', wdc.cong.freq$congener) # replace dot for +
+  wdc.cong.freq$PCB.frequency <- as.numeric(as.character(wdc.cong.freq$PCB.frequency))
+  wdc.cong.freq$congener <- factor(wdc.cong.freq$congener,
+                                   levels = rev(wdc.cong.freq$congener)) # change the order to be plotted.
 }
 
 # Summary statistic of frequency of detection
@@ -80,53 +87,80 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   theme(axis.text.y = element_text(face = "bold", size = 3))
 
 # Total Concentration Analysis --------------------------------------------
+# Data preparation
+{
+  # Remove samples (rows) with total PCBs  = 0
+  wdc.2 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
+  # Calculate total log PCB
+  # Remove metadata
+  wdc.3 <- subset(wdc.2, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  pcbi <- subset(wdc.3, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  pcbi.log <- log10(pcbi)
+  # Replace -inf to NA
+  pcbi.log <- do.call(data.frame,
+                     lapply(pcbi.log,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Sum individual log 10 PCBs
+  tpcb.log <- rowSums(pcbi.log, na.rm = T)
+  # Change date format
+  wdc.2$SampleDate <- as.Date(wdc.2$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(wdc.2$SampleDate) - min(as.Date(wdc.2$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- wdc.2$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(wdc.2$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
+                wdc.2$Latitude, wdc.2$Longitude, as.matrix(tpcb),
+                as.matrix(tpcb.log), data.frame(time.day),
+                site.numb, season.s)
+  # Add column names
+  colnames(tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                      "tPCB", "logtPCB", "time", "site.code",
+                      "season")
+}
+
+# Get coordinates per site to plot in Google Earth
+location <- tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
+# Average tPCB per site
+location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                      data = location, mean)
+
 # Summary statistic of total PCB (congeners + Aroclor) in pg/L
 summary(rowSums(wdc.1, na.rm = T))
 
+# Global plots ------------------------------------------------------------
 # Histogram
-hist(rowSums(wdc.1, na.rm = T))
-hist(log10(rowSums(wdc.1, na.rm = T)))
+hist(tpcb$tPCB)
+hist(log10(tpcb$tPCB))
+hist(tpcb$logtPCB)
+hist(log10(tpcb$logtPCB))
 
-# Total PCBs in 1 box plot
-ggplot(wdc.1, aes(x = "", y = rowSums(wdc.1, na.rm = T))) + 
+## Total PCBs in 1 box plot
+## include 64 pg/L from EPA
+ggplot(tpcb, aes(x = "", y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_classic() +
   theme(aspect.ratio = 14/2) +
-  xlab(expression(bold(Sigma*"PCB (n = 5265)")))+
+  xlab(expression(bold(Sigma*"PCB (n = 5250)")))+
   ylab(expression(bold("Water Concentration 1990 - 2020 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 12),
-        axis.title.y = element_text(face = "bold", size = 12)) +
-  theme(axis.text.x = element_text(face = "bold", size = 10),
-        axis.title.x = element_text(face = "bold", size = 10,
-                                    angle = 45, hjust = 1.8,
-                                    vjust = 2)) +
+  theme(axis.text.y = element_text(face = "bold", size = 10),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8),
+        axis.title.x = element_text(face = "bold", size = 8, vjust = 5)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotation_logticks(sides = "l")
-
-# Include 64 pg/L from EPA
-ggplot(wdc.1, aes(x = "", y = rowSums(wdc.1, na.rm = T))) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_classic() +
-  theme(aspect.ratio = 14/2) +
-  xlab(expression(bold(Sigma*"PCB (n = 5300)")))+
-  ylab(expression(bold("Water Concentration 1990 - 2020 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 12),
-        axis.title.y = element_text(face = "bold", size = 12)) +
-  theme(axis.text.x = element_text(face = "bold", size = 10),
-        axis.title.x = element_text(face = "bold", size = 10,
-                                    angle = 45, hjust = 1.8,
-                                    vjust = 2)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 1.2, width = 0.7, outlier.shape = NA, alpha = 0) +
   annotation_logticks(sides = "l") +
   geom_hline(yintercept = 0.64*1000, color = "#9999CC",
              linewidth = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
@@ -149,8 +183,8 @@ cong.median <- as.numeric(sub('.*:',
 ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  geom_boxplot(width = 0.6, outlier.colour = "#66ccff", col = "#66ccff",
-               outlier.shape = 1) +
+  geom_boxplot(width = 0.6, shape = 21, outlier.fill = "#66ccff",
+               fill = "#66ccff", outlier.shape = 21) +
   scale_x_discrete(labels = wdc.cong.freq$congener) + # use to change the "." to "+"
   theme_bw() +
   theme(aspect.ratio = 25/135) +
@@ -164,7 +198,7 @@ ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
                                    angle = 60, hjust = 1,
                                    color = "black"),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.6, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.6, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l",
                       short = unit(0.5, "mm"),
@@ -178,8 +212,8 @@ sites <- c("CA", "DE", "ID", "IN", "MA", "MD", "MI", "MO",
            "MT", "NM", "NY", "OH", "OR", "TX", "VA", "WA", "WI")
 
 # Total PCBs
-ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
-                y = rowSums(wdc[, c(14:117)],  na.rm = T))) + 
+ggplot(wdc.2, aes(x = factor(StateSampled, levels = sites),
+                y = rowSums(wdc.2[, c(14:117)],  na.rm = T))) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -196,18 +230,21 @@ ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
   geom_hline(yintercept = 0.64*1000, color = "#9999CC",
              size = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
   geom_hline(yintercept = 0.064*1000, color = "#CC6666",
              size = 0.8) # associated with an incremental cancer risk of 10−6.
 
 # Selected StateSampled and individual PCB congener
-wdc.pcb.sp <- subset(wdc, select = c(StateSampled, PCB4.10))
-
+wdc.pcbi <- subset(wdc, select = c(StateSampled, PCB4.10))
+# Remove samples with 0s
+wdc.pcbi <- wdc.pcbi[!(wdc.pcbi[2] == 0), ]
+# Remove samples this NA
+wdc.pcbi <- wdc.pcbi[!is.na(wdc.pcbi[2]),]
 # Plot
-ggplot(wdc.pcb.sp, aes(x = factor(StateSampled, levels = sites),
+ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
                    y = PCB4.10)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -225,66 +262,21 @@ ggplot(wdc.pcb.sp, aes(x = factor(StateSampled, levels = sites),
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
   geom_hline(yintercept = 0.03, color = "#cc0000") # median 
 
 # Regression analysis and plots---------------------------------------------
-# Remove samples (rows) with total PCBs  = 0
-wdc.2 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
-# Calculate total PCB
-wdc.tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
-# Calculate total log PCB
-# Remove metadata
-wdc.3 <- subset(wdc.2, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-wdc.3 <- subset(wdc.3, select = -c(A1016:A1260))
-# Log10 individual PCBs 
-wdc.log <- log10(wdc.3)
-# Replace -inf to NA
-wdc.log <- do.call(data.frame,
-                   lapply(wdc.log,
-                          function(x) replace(x, is.infinite(x), NA)))
-
-# Sum individual log 10 PCBs
-wdc.log.tpcb <- rowSums(wdc.log, na.rm = T)
-# Change date format
-wdc.2$SampleDate <- as.Date(wdc.2$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(wdc.2$SampleDate) - min(as.Date(wdc.2$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- wdc.2$SiteID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(wdc.2$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-wdc.tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
-                  wdc.2$Latitude, wdc.2$Longitude, as.matrix(wdc.tpcb),
-                  as.matrix(wdc.log.tpcb), data.frame(time.day),
-                  site.numb, season.s)
-# Add column names
-colnames(wdc.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
-                        "tPCB", "logtPCB", "time", "site.code", "season")
-
-# Plots -------------------------------------------------------------------
-# (1) Histograms
-# (1.1) tPCB
-hist(wdc.tpcb$tPCB)
-hist(log10(wdc.tpcb$tPCB))
-# (1.2) log.tPCB
-hist(wdc.tpcb$logtPCB)
-hist(log10(wdc.tpcb$logtPCB))
-
+# Plots
 # (2) Time trend plots
 # (2.1) tPCB
-ggplot(wdc.tpcb, aes(y = tPCB,
+ggplot(tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point(shape = 1, cex = 1.2, col = "#66ccff") +
+  geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   theme(aspect.ratio = 5/20) +
   xlab("") +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2019 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -296,12 +288,12 @@ ggplot(wdc.tpcb, aes(y = tPCB,
         axis.title.y = element_text(face = "bold", size = 11))
 
 # (2.2) log.tPCB
-ggplot(wdc.tpcb, aes(y = logtPCB,
+ggplot(tpcb, aes(y = logtPCB,
                          x = format(date,'%Y'))) +
-  geom_point(shape = 1, cex = 1.2, col = "#66ccff") +
+  geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   xlab("") +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2019 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
@@ -310,7 +302,7 @@ ggplot(wdc.tpcb, aes(y = logtPCB,
 
 # (3) Seasonality
 # (3.1) tPCB
-ggplot(wdc.tpcb, aes(x = season, y = tPCB)) +
+ggplot(tpcb, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -318,7 +310,7 @@ ggplot(wdc.tpcb, aes(x = season, y = tPCB)) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2019 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -328,17 +320,17 @@ ggplot(wdc.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
+              shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
 # (3.2) log.tPCB
-ggplot(wdc.tpcb, aes(x = season, y = logtPCB)) +
+ggplot(tpcb, aes(x = season, y = logtPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2019 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
@@ -347,123 +339,139 @@ ggplot(wdc.tpcb, aes(x = season, y = logtPCB)) +
   theme(axis.ticks = element_line(size = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
+              shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
 
 # Regressions -------------------------------------------------------------
 # Get variables
-tpcb <- wdc.tpcb$tPCB
-log.tpcb <- wdc.tpcb$logtPCB
-time <- wdc.tpcb$time
-site <- wdc.tpcb$site.code
-season <- wdc.tpcb$season
+tPCB <- tpcb$tPCB
+log.tPCB <- tpcb$logtPCB
+time <- tpcb$time
+site <- tpcb$site.code
+season <- tpcb$season
 # (1) Perform linear regression (lr)
 # (1.1) tPCB vs. time
-lr.wdc.tpcb.t <- lm(log10(tpcb) ~ time)
+lr.tpcb.t <- lm(log10(tPCB) ~ time)
 # See results
-summary(lr.wdc.tpcb.t)
+summary(lr.tpcb.t)
 # Look at residuals
-res <- resid(lr.wdc.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.tpcb.t) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (1.2) log.tPCB vs. time
-lr.wdc.log.tpcb.t <- lm(log.tpcb ~ time)
+lr.log.tpcb.t <- lm(log.tPCB ~ time)
 # See results
-summary(lr.wdc.log.tpcb.t)
+summary(lr.log.tpcb.t)
 # Look at residuals
-res <- resid(lr.wdc.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.log.tpcb.t) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (1.3) tPCB vs. season
-lr.wdc.tpcb.s <- lm(log10(tpcb) ~ season)
+lr.tpcb.s <- lm(log10(tPCB) ~ season)
 # See results
-summary(lr.wdc.tpcb.s)
+summary(lr.tpcb.s)
 # Look at residuals
-res <- resid(lr.wdc.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.tpcb.s) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (1.4) log.tPCB vs. season
-lr.wdc.log.tpcb.s <- lm(log.tpcb ~ season)
+lr.log.tpcb.s <- lm(log.tPCB ~ season)
 # See results
-summary(lr.wdc.log.tpcb.s)
+summary(lr.log.tpcb.s)
 # Look at residuals
-res <- resid(lr.wdc.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(lr.log.tpcb.s) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (2) MLR
 # (2.1) tPCB vs. time + season
-mlr.wdc.tpcb <- lm(log10(tpcb) ~ time + season)
+mlr.tpcb <- lm(log10(tPCB) ~ time + season)
 # See results
-summary(mlr.wdc.tpcb)
+summary(mlr.tpcb)
 # Look at residuals
-res <- resid(mlr.wdc.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(mlr.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (2.2) log.tPCB vs. time + season
-mlr.wdc.log.tpcb <- lm(log.tpcb ~ time + season)
+mlr.log.tpcb <- lm(log.tPCB ~ time + season)
 # See results
-summary(mlr.wdc.log.tpcb)
+summary(mlr.log.tpcb)
 # Look at residuals
-res <- resid(mlr.wdc.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res <- resid(mlr.log.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res)
+  # Add a straight diagonal line to the plot
+  qqline(res)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 
 # (3) Perform Linear Mixed-Effects Model (lme)
 # (3.1) tPCB vs. time + season + site
-lmem.wdc.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
+lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
                                             check.nobs.vs.rankZ = "ignore",
                                             check.nobs.vs.nRE = "ignore"))
 
 # See results
-summary(lmem.wdc.tpcb)
+summary(lmem.tpcb)
 # Look at residuals
-res.wdc.tpcb <- resid(lmem.wdc.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.wdc.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.wdc.tpcb)
+{
+  res.tpcb <- resid(lmem.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.tpcb, main = "log10(C)")
+  qqnorm(res.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.tpcb)
+}
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.wdc.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.wdc.tpcb))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2c']
 
 # Extract coefficient values
-time.coeff <- summary(lmem.wdc.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.wdc.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lmem.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lmem.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
 t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 # Calculate error
@@ -471,63 +479,85 @@ t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.wdc.tpcb <- as.data.frame(fitted(lmem.wdc.tpcb))
+fit.values.tpcb <- as.data.frame(fitted(lmem.tpcb))
 # Add column name
-colnames(fit.values.wdc.tpcb) <- c("predicted")
+colnames(fit.values.tpcb) <- c("lme.predicted")
 # Add predicted values to data.frame
-wdc.tpcb$predicted <- 10^(fit.values.wdc.tpcb$predicted)
+tpcb$lmepredicted <- 10^(fit.values.tpcb$lme.predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(wdc.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(0.1, 1e7)) +
-  scale_y_log10(limits = c(0.1, 1e7)) +
+ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  scale_y_log10(limits = c(0.1, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(0.1, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", size = 1) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
 # Plot residuals vs. predictions
-plot(wdc.tpcb$predicted, res.wdc.tpcb)
-abline(0, 0)
+{
+  plot(log10(tpcb$lmepredicted), res.tpcb,
+       points(log10(tpcb$lmepredicted), res.tpcb, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-4, 4),
+       xlab = expression(paste("Predicted lme concentration log10",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  abline(h = seq(-4, 4, 1), col = "grey")
+  abline(v = seq(1, 6, 1), col = "grey")
+}
 
 # (3.2) log.tPCB vs. time + season + site (wdc.log.tpcb)
-lmem.wdc.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + (1|site),
+lmem.log.tpcb <- lmer(log.tPCB ~ 1 + time + season + season + (1|site),
                           REML = FALSE,
                           control = lmerControl(check.nobs.vs.nlev = "ignore",
                                                 check.nobs.vs.rankZ = "ignore",
                                                 check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.wdc.log.tpcb)
+summary(lmem.log.tpcb)
 # Look at residuals
-res.wdc.log.tpcb <- resid(lmem.wdc.log.tpcb) # get list of residuals
+res.log.tpcb <- resid(lmem.log.tpcb) # get list of residuals
 # Create Q-Q plot for residuals
-qqnorm(res.wdc.log.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.wdc.log.tpcb)
+{
+  qqnorm(res.log.tpcb, main = "log10(C)")
+  # Add a straight diagonal line to the plot
+  qqline(res.log.tpcb)
+}
 # One-sample Kolmogorov-Smirnov test
-ks.test(res.wdc.log.tpcb, 'pnorm')
+ks.test(res.log.tpcb, 'pnorm')
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.wdc.log.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lmem.log.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.wdc.log.tpcb))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lmem.log.tpcb))[1, 'R2c']
 
 # (2) Get predicted values log.tpcb
-fit.values.wdc.log.tpcb <- as.data.frame(fitted(lmem.wdc.log.tpcb))
+fit.values.log.tpcb <- as.data.frame(fitted(lmem.log.tpcb))
 # Add column name
-colnames(fit.values.wdc.log.tpcb) <- c("predicted")
+colnames(fit.values.log.tpcb) <- c("predictedlog")
 # Add predicted values to data.frame
-wdc.tpcb$predictedlog <- (fit.values.wdc.log.tpcb$predicted)
+tpcb$lmepredictedlog <- (fit.values.log.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(wdc.tpcb, aes(x = logtPCB, y = predictedlog)) +
-  geom_point() +
+ggplot(tpcb, aes(x = logtPCB, y = lmepredictedlog)) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  xlim(-200, 300) +
+  ylim(-200, 300) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  geom_abline(intercept = 0, slope = 1, col = "black", size = 1) +
   theme_bw() +
   theme(aspect.ratio = 15/15)
 
