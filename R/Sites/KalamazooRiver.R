@@ -1,7 +1,8 @@
 ## Water PCB concentrations data analysis per site
-# Kalamazoo River
-# Aroclors 1242, 1254 and 1260
+## Kalamazoo River
+## Aroclors 1242, 1254 and 1260
 
+# Install packages
 # Install packages
 install.packages("tidyverse")
 install.packages("ggplot2")
@@ -14,113 +15,91 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages("reshape")
 
 # Load libraries
-library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Select Kalamazoo data ---------------------------------------------------
-kal <- wdc[str_detect(wdc$SiteName, 'Kalamazoo River'),]
+kal.0 <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
 # Superfund site from Morrow Dam (Kalamazoo River) to Lake Michigan
 # and 30 miles of Portage Creek (south), Cork St and Portage Creek Cork St sites
 # Dredging occurred at Plainwell Dam site.
 
 # Data preparation --------------------------------------------------------
-# Calculate total PCB
-tpcb.kal <- rowSums(kal[, c(14:117)], na.rm = T)
-# Change date format
-kal$SampleDate <- as.Date(kal$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(kal$SampleDate) - min(as.Date(kal$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- kal$LocationID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(kal$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-kal.tpcb <- cbind(factor(kal$LocationID), kal$SampleDate,
-                kal$Latitude, kal$Longitude, as.matrix(tpcb.kal),
-                data.frame(time.day), site.numb, season.s)
-# Add column manes
-colnames(kal.tpcb) <- c("LocationID", "date", "Latitude", "Longitude",
-                        "tPCB", "time", "site.code", "season")
+{
+  # Remove samples (rows) with total PCBs  = 0
+  kal.1 <- kal.0[!(rowSums(kal.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb.kal <- rowSums(kal.1[, c(14:117)], na.rm = T)
+  # Change date format
+  kal.1$SampleDate <- as.Date(kal.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(kal.1$SampleDate) - min(as.Date(kal.1$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- kal.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(kal.1$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  kal.tpcb <- cbind(factor(kal.1$SiteID), kal.1$SampleDate,
+                    kal.1$Latitude, kal.1$Longitude, as.matrix(tpcb.kal),
+                    data.frame(time.day), site.numb, season.s)
+  # Add column names
+  colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "time", "site.code", "season")
+}
 
-# Get coordinates per site
-kal.location <- kal.tpcb[c('LocationID', 'Latitude', 'Longitude', 'tPCB')]
+# Get coordinates per site to plot in Google Earth
+kal.location <- kal.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
-kal.location <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
-                            data = kal.location, mean)
-
-# (2) Calculate total log PCB
-# Remove metadata
-kal.log <- subset(kal, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-kal.log <- subset(kal.log, select = -c(A1016:A1260))
-# Log 10 individual PCBs 
-kal.log <- log10(kal.log)
-# Replace -inf to NA
-kal.log <- do.call(data.frame,
-                       lapply(kal.log,
-                              function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-kal.log.tpcb <- rowSums(kal.log, na.rm = T)
-# Generate data.frame for analysis and plots
-kal.log.tpcb <- cbind(factor(kal$LocationID), kal$SampleDate,
-                    as.matrix(kal.log.tpcb), data.frame(time.day),
-                    site.numb, season.s)
-colnames(kal.log.tpcb) <- c("LocationID", "date", "logtPCB", "time",
-                          "site.code", "season")
+kal.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                          data = kal.location, mean)
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
-# (1.1) tPCB
+# tPCB
 hist(kal.tpcb$tPCB)
 hist(log10(kal.tpcb$tPCB))
-# (1.2) log.tPCB
-hist(kal.log.tpcb$logtPCB)
 
 # (2) Time trend plots
-# (2.1) tPCB
 ggplot(kal.tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point(shape = 1, col = "#66ccff") +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Conncetration",
-                            paste(Sigma*"PCB 1993 - 2010 (pg/L)"))))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9))
-
-# (2.2) log.tPCB
-ggplot(kal.log.tpcb, aes(y = logtPCB,
-                         x = format(date,'%Y'))) +
-  geom_point() +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15)
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 8, y = 10^8, label = "Kalamazoo River",
+           size = 4)
 
 # (3) Seasonality
-# (3.1) tPCB
 ggplot(kal.tpcb, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
@@ -128,62 +107,48 @@ ggplot(kal.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 1993 - 2010 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (3.2) log.tPCB
-ggplot(kal.log.tpcb, aes(x = season, y = logtPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 1993 - 2010 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 3.8, y = 10^8, label = "Kalamazoo River",
+           size = 4)
 
 # (4) Sites
-# (4.1) tPCB
-ggplot(kal.tpcb, aes(x = factor(LocationID), y = tPCB)) + 
+ggplot(kal.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 1993 - 2010 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 21, y = 10^8, label = "Kalamazoo River",
+           size = 4)
 
 # Remove site -------------------------------------------------------------
 # Remove site PlainwellDam. Dredging = WCPCB-KAL023
-kal.tpcb.1 <- subset(kal.tpcb, LocationID != c("WCPCB-KAL023"))
-kal.log.tpcb.1 <- subset(kal.log.tpcb, LocationID != c("WCPCB-KAL023"))
+kal.tpcb.1 <- subset(kal.tpcb, SiteID != c("WCPCB-KAL023"))
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Kalamazoo River
@@ -213,22 +178,28 @@ kal.tpcb.2 <- na.omit(kal.tpcb.1)
 # (1.1) tPCB
 hist(kal.tpcb.1$tPCB)
 hist(log10(kal.tpcb.1$tPCB))
-# (1.2) log.tPCB
-hist(kal.log.tpcb.1$logtPCB)
 
 # (2) Time trend plots
-# (2.1) tPCB
-ggplot(kal.tpcb.1, aes(y = tPCB,
+ggplot(fox.tpcb.2, aes(y = tPCB,
                        x = format(date,'%Y'))) +
-  geom_point() +
+  geom_point(shape = 21, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 5.8, y = 10^5, label = "Fox River",
+           size = 4)
+
+# Until here!
+
 
 # (2.2) log.tPCB
 ggplot(kal.log.tpcb.1, aes(y = logtPCB,
