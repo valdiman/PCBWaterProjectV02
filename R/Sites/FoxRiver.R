@@ -93,7 +93,7 @@ ggplot(fox.tpcb, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 3)
+           size = 4)
   
 # (3) Seasonality
 ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
@@ -107,7 +107,7 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
@@ -115,7 +115,9 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 1, y = 10^5, label = "Fox River",
+           size = 4)
 
 # (4) Sites
 ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
@@ -136,7 +138,9 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 7.8, y = 10^5, label = "Fox River",
+           size = 4)
 
 # Remove site -------------------------------------------------------------
 # Remove site Lake Winnebago (background site)
@@ -164,7 +168,7 @@ ggplot(fox.tpcb.2, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 3)
+           size = 4)
 
 # (3) Seasonality
 ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
@@ -178,7 +182,7 @@ ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
@@ -186,7 +190,9 @@ ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 1, y = 10^5, label = "Fox River",
+           size = 4)
 
 # (4) Sites
 ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
@@ -207,7 +213,9 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 6.8, y = 10^5, label = "Fox River",
+           size = 4)
 
 # Include USGS flow data --------------------------------------------------
 {
@@ -235,13 +243,12 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- fox.tpcb.2$tPCB
-log.tpcb <- fox.tpcb.2$logtPCB
 time <- fox.tpcb.2$time
 site <- fox.tpcb.2$site.code
 season <- fox.tpcb.2$season
 flow <- fox.tpcb.2$flow
 tem <- fox.tpcb.2$temp
-# (3.1) tPCB vs. time + season + flow + temp + site
+# tPCB vs. time + season + flow + temp + site
 lmem.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -296,14 +303,14 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   scale_x_log10(limits = c(10, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = 0.5, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.5, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 100, y = 10^4.8,
+  annotate('text', x = 100, y = 10^4.9,
            label = expression("Fox River (R"^2*"= 0.78)"),
            size = 4, fontface = 2)
 
@@ -313,7 +320,7 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
        points(log10(fox.tpcb.2$predicted), res.fox.tpcb, pch = 16, 
               col = "#66ccff"),
        ylim = c(-2, 2),
-       xlab = expression(paste("Predicted concentration ",
+       xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
   abline(0, 0)
@@ -333,7 +340,7 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
   time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.fox.tpcb)
   # Change again the names
-  colnames(time.serie.tpcb[,4]) <- c("lmetPCB")
+  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
   # Change data.frame format to be plotted
   time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
 }
@@ -341,10 +348,10 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
 ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   geom_point(aes(shape = variable, color = variable, size = variable,
                  fill = variable)) +
-  scale_shape_manual(values = c(21, 3, 4)) +
-  scale_color_manual(values = c('black','#8856a7', '#b2df8a')) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
   scale_size_manual(values = c(2, 1, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7', '#b2df8a')) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
   scale_x_date(labels = date_format("%Y-%m")) +
   scale_y_log10(limits = c(10, 10000)) +
   xlab("") +
@@ -360,7 +367,9 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   annotation_logticks(sides = "l",
                       short = unit(0.5, "mm"),
                       mid = unit(1.5, "mm"),
-                      long = unit(2, "mm"))
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
+           y = 10^3.8, label = "Fox River", size = 3.5)
 
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
@@ -369,20 +378,28 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   fox.pcb <- subset(fox.1, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
   fox.pcb <- subset(fox.pcb, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  fox.pcb <- log10(fox.pcb)
+  # Replace -inf to NA
+  fox.pcb <- do.call(data.frame,
+                     lapply(fox.pcb,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Remove individual PCB that have 30% or less NA values
+  fox.pcb.1 <- fox.pcb[,
+                       -which(colSums(is.na(fox.pcb))/nrow(fox.pcb) > 0.7)]
   # Add site ID
-  fox.pcb$SiteID <- fox.1$SiteID
+  fox.pcb.1$SiteID <- fox.1$SiteID
   # Change date format
-  fox.pcb$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
+  fox.pcb.1$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  fox.pcb$time <- as.Date(fox.pcb$SampleDate) - min(as.Date(fox.pcb$SampleDate))
+  fox.pcb.1$time <- as.Date(fox.1$SampleDate) - min(as.Date(fox.1$SampleDate))
   # Create individual code for each site sampled
-  fox.pcb$site.numb <- fox.pcb$SiteID %>% as.factor() %>% as.numeric
+  fox.pcb.1$site.numb <- fox.1$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(fox.pcb$SampleDate, "%m/%d/%Y") + 1/12)
-  fox.pcb$season <- factor(format(yq.s, "%q"), levels = 1:4,
+  fox.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
                            labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Remove site Lake Winnebago (background site)
-  fox.pcb.2 <- subset(fox.pcb, SiteID != c("WCPCB-FOX001"))
+  fox.pcb.1 <- subset(fox.pcb.1, SiteID != c("WCPCB-FOX001"))
   # Include flow data from USGS station Fox River
   sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
   sitefoxN2 <- "040851385" # water temperature @ FOX RIVER AT OIL TANK DEPOT AT GREEN BAY, WI
@@ -391,17 +408,16 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
   flow <- readNWISdv(sitefoxN1, paramflow,
-                     min(fox.pcb.2$SampleDate), max(fox.pcb.2$SampleDate))
+                     min(fox.pcb.1$SampleDate), max(fox.pcb.1$SampleDate))
   temp <- readNWISdv(sitefoxN2, paramtemp,
-                     min(fox.pcb.2$SampleDate), max(fox.pcb.2$SampleDate))
+                     min(fox.pcb.1$SampleDate), max(fox.pcb.1$SampleDate))
   # Add USGS data to fox.pcb, matching dates, conversion to m3/s
-  fox.pcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.pcb.2$SampleDate,
+  fox.pcb.1$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.pcb.1$SampleDate,
                                                                         flow$Date)]
-  fox.pcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.pcb.2$SampleDate, temp$Date)]
+  fox.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(fox.pcb.1$SampleDate,
+                                                      temp$Date)]
   # Remove samples with temperature = NA
-  fox.pcb.2 <- fox.pcb.2[!is.na(fox.pcb.2$temp), ]
-  # Remove individual PCB that have 45% or less values
-  fox.pcb.2[,colSums(is.na(fox.pcb.2)) > nrow(fox.pcb.2) - 45] <- NULL
+  fox.pcb.2 <- fox.pcb.1[!is.na(fox.pcb.1$temp), ]
   # Remove metadata
   fox.pcb.3 <- subset(fox.pcb.2, select = -c(SiteID:temp))
 }
@@ -452,7 +468,8 @@ for (i in 1:length(fox.pcb.3[1,])) {
 
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
-# Add PCB congener names
+# Add congener names
+congeners <- colnames(fox.pcb.3)
 lme.pcb <- cbind(congeners, lme.pcb)
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
@@ -496,12 +513,10 @@ obs <- fox.pcb.3$PCB17
 fox.pcbi <- cbind(date.pcbi, obs)
 # Remove NA value from observations
 fox.pcbi <- na.omit(fox.pcbi)
-fit.mlr.values.pcbi <- as.data.frame(predict(mlr.fox.pcbi))
 fit.lme.values.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
-fox.pcbi <- cbind(fox.pcbi, fit.mlr.values.pcbi,
-                             fit.lme.values.pcbi)
-colnames(fox.pcbi) <- c("date", "obs", "mlr", 'lme')
-fox.pcbi.2$date <- as.Date(fox.pcbi.2$date)
+fox.pcbi <- cbind(fox.pcbi, fit.lme.values.pcbi)
+colnames(fox.pcbi) <- c("date", "obs", 'lme')
+fox.pcbi$date <- as.Date(fox.pcbi$date)
 fox.pcbi$obs <- as.numeric(fox.pcbi$obs)
 
 # Plot residuals vs. predictions
@@ -525,10 +540,10 @@ fox.pcbi.2 <- melt(fox.pcbi, id.vars = c("date"))
 ggplot(fox.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
   geom_point(aes(shape = variable, color = variable, size = variable,
                  fill = variable)) +
-  scale_shape_manual(values = c(21, 3, 4)) +
-  scale_color_manual(values = c('black','#8856a7', '#b2df8a')) +
-  scale_size_manual(values = c(2, 1, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7', '#b2df8a')) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
+  scale_size_manual(values = c(2, 1)) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
   scale_x_date(labels = date_format("%Y-%m")) +
   scale_y_log10(limits = c(1, 1000)) +
   xlab("") +
@@ -544,5 +559,7 @@ ggplot(fox.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
   annotation_logticks(sides = "l",
                       short = unit(0.5, "mm"),
                       mid = unit(1.5, "mm"),
-                      long = unit(2, "mm"))
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
+           y = 850, label = "Fox River", size = 3.5)
 
