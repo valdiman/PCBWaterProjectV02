@@ -431,7 +431,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   kal.pcb.3 <- subset(kal.pcb.2, select = -c(SiteID:flow.3))
 }
 
-# Something odd ocurring.
+# Something odd occurring.
 
 # Get covariates
 time <- kal.pcb.2$time
