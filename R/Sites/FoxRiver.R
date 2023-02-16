@@ -230,7 +230,7 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
                      min(fox.tpcb.2$date), max(fox.tpcb.2$date))
   temp <- readNWISdv(sitefoxN2, paramtemp,
                      min(fox.tpcb.2$date), max(fox.tpcb.2$date))
-  # Add USGS data to fox.tpcb, matching dates, conversion to m3/s
+  # Add USGS data to fox.tpcb.2, matching dates, conversion to m3/s
   fox.tpcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.2$date,
                                                                          flow$Date)]
   fox.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.2$date,
@@ -270,8 +270,6 @@ summary(lmem.fox.tpcb)
 }
 # Shapiro test
 shapiro.test(res.fox.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
 # Random effect site Std Dev
 RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.fox.tpcb))[1,'sdcor']
 # Extract R2 no random effect
@@ -353,7 +351,9 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   scale_size_manual(values = c(2, 1, 1)) +
   scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
   scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(10, 10000)) +
+  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  #scale_y_log10(limits = c(10, 10000)) +
   xlab("") +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
