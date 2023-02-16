@@ -96,7 +96,7 @@ ggplot(kal.tpcb, aes(y = tPCB,
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 8, y = 10^8, label = "Kalamazoo River",
+  annotate("text", x = 2, y = 100, label = "Kalamazoo River",
            size = 4)
 
 # (3) Seasonality
@@ -120,7 +120,7 @@ ggplot(kal.tpcb, aes(x = season, y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 3.8, y = 10^8, label = "Kalamazoo River",
+  annotate("text", x = 1.2, y = 10^6.5, label = "Kalamazoo River",
            size = 4)
 
 # (4) Sites
@@ -143,7 +143,7 @@ ggplot(kal.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 21, y = 10^8, label = "Kalamazoo River",
+  annotate("text", x = 5, y = 10^6.5, label = "Kalamazoo River",
            size = 4)
 
 # Remove site -------------------------------------------------------------
@@ -180,7 +180,7 @@ hist(kal.tpcb.2$tPCB)
 hist(log10(kal.tpcb.2$tPCB))
 
 # (2) Time trend plots
-ggplot(kal.tpcb.2, aes(y = tPCB,
+ggplot(kal.tpcb.1, aes(y = tPCB,
                        x = format(date,'%Y'))) +
   geom_point(shape = 21, fill = "#66ccff") +
   xlab("") +
@@ -199,7 +199,7 @@ ggplot(kal.tpcb.2, aes(y = tPCB,
            size = 4)
 
 # (3) Seasonality
-ggplot(kal.tpcb.2, aes(x = season, y = tPCB)) +
+ggplot(kal.tpcb.1, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -219,11 +219,11 @@ ggplot(kal.tpcb.2, aes(x = season, y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 1.1, y = 10^5.2, label = "Kalamazoo River",
+  annotate("text", x = 1.1, y = 10^5.5, label = "Kalamazoo River",
            size = 4)
 
 # (4) Sites
-ggplot(kal.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(kal.tpcb.1, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -242,16 +242,16 @@ ggplot(kal.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 9, y = 10^5.2, label = "Kalamazoo River",
+  annotate("text", x = 5, y = 100, label = "Kalamazoo River",
            size = 4)
 
 # Regressions -------------------------------------------------------------
 # Perform Linear Mixed-Effects Model (LMEM)
-tpcb <- kal.tpcb.1$tPCB
-time <- kal.tpcb.1$time
-site <- kal.tpcb.1$site.code
-season <- kal.tpcb.1$season
-flow <- kal.tpcb.1$flow.3
+tpcb <- kal.tpcb.2$tPCB
+time <- kal.tpcb.2$time
+site <- kal.tpcb.2$site.code
+season <- kal.tpcb.2$season
+flow <- kal.tpcb.2$flow.3
 
 lmem.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
                   REML = FALSE,
@@ -297,10 +297,10 @@ fit.lme.values.kal.tpcb <- as.data.frame(fitted(lmem.kal.tpcb))
 # Add column name
 colnames(fit.lme.values.kal.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-kal.tpcb.1$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
+kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(kal.tpcb.1, aes(x = tPCB, y = predicted)) +
+ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -320,8 +320,8 @@ ggplot(kal.tpcb.1, aes(x = tPCB, y = predicted)) +
 
 # Plot residuals vs. predictions
 {
-  plot(log10(kal.tpcb.1$predicted), res.kal.tpcb,
-       points(log10(kal.tpcb.1$predicted), res.kal.tpcb, pch = 16, 
+  plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
+       points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
               col = "#66ccff"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
@@ -358,9 +358,9 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   scale_size_manual(values = c(2, 1, 1)) +
   scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
   scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(10, 300)) +
-  xlim(as.Date("2008-11-01", format = "%Y-%m-%d"),
-       x = as.Date("2009-02-01", format = "%Y-%m-%d")) +
+  scale_y_log10(limits = c(10, 1000000)) +
+  #xlim(as.Date("2008-11-01", format = "%Y-%m-%d"),
+  #     x = as.Date("2009-02-01", format = "%Y-%m-%d")) +
   xlab("") +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
@@ -443,7 +443,7 @@ site <- kal.pcb.2$site.numb
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(kal.pcb.3[1,]), ncol = 24)
 
-a <- lmer(kal.pcb.3$PCB2 ~ 1 + time + (1|site),
+a <- lmer(10^(kal.pcb.3$PCB12.13) ~ 1 + time + (1|site),
      REML = FALSE,
      control = lmerControl(check.nobs.vs.nlev = "ignore",
                            check.nobs.vs.rankZ = "ignore",
