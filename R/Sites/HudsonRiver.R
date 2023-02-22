@@ -414,5 +414,190 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   annotate("text", x = as.Date("2017-12-01", format = "%Y-%m-%d"),
            y = 10^5.2, label = "Hudson River", size = 3.5)
 
+# Individual PCB Analysis -------------------------------------------------
+# Use hud.1 (no 0s samples)
+# Prepare data.frame
+{
+  hud.pcb <- subset(hud.1, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  hud.pcb <- subset(hud.pcb, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  hud.pcb <- log10(hud.pcb)
+  # Replace -inf to NA
+  hud.pcb <- do.call(data.frame,
+                     lapply(hud.pcb,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Remove individual PCB that have 30% or less NA values
+  hud.pcb.1 <- hud.pcb[,
+                       -which(colSums(is.na(hud.pcb))/nrow(hud.pcb) > 0.7)]
+  # Add site ID
+  hud.pcb.1$SiteID <- hud.1$SiteID
+  # Change date format
+  hud.pcb.1$SampleDate <- as.Date(hud.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  hud.pcb.1$time <- as.Date(hud.1$SampleDate) - min(as.Date(hud.1$SampleDate))
+  # Create individual code for each site sampled
+  hud.pcb.1$site.numb <- hud.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  hud.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  ## Remove site Bakers Falls. Upstream source
+  ## North Bakers Falls = WCPCB-HUD006 and
+  ## South Bakers Falls = WCPCB-HUD006.
+  hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD006"))
+  hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD010"))
+  # Add USGS data to hud.tpcb.2, matching dates
+  hud.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(hud.pcb.1$SampleDate,
+                                                       flow.1$Date)]
+  hud.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(hud.pcb.1$SampleDate,
+                                                       flow.2$Date)]
+  hud.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(hud.pcb.1$SampleDate,
+                                                       flow.3$Date)]
+  hud.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(hud.pcb.1$SampleDate,
+                                                       flow.4$Date)]
+  hud.pcb.1$temp <- 273 + temp$X_00010_00003[match(hud.pcb.1$SampleDate,
+                                                    temp$Date)]
+  # Remove metadata
+  hud.pcb.2 <- subset(hud.pcb.1, select = -c(SiteID:temp))
+}
+  
+# Get covariates
+time <- hud.pcb.1$time
+flow <- hud.pcb.1$flow.1
+temper <- hud.pcb.1$temp
+season <- hud.pcb.1$season
+site <- hud.pcb.1$site.numb
+
+# LME for individual PCBs -------------------------------------------------
+# Create matrix to store results
+lme.pcb <- matrix(nrow = length(hud.pcb.2[1,]), ncol = 24)
+
+# Perform LME
+for (i in 1:length(hud.pcb.2[1,])) {
+  fit <- lmer(hud.pcb.2[,i] ~ 1 + time + flow + temper + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb[i,1] <- fixef(fit)[1] # intercept
+  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
+  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.pcb[i,4] <- fixef(fit)[2] # time
+  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
+  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.pcb[i,7] <- fixef(fit)[3] # flow
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # flow error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # temperature
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # temperature error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 2
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 2 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,16] <- fixef(fit)[6] # season 3
+  lme.pcb[i,17] <- summary(fit)$coef[6,"Std. Error"] # season 3 error
+  lme.pcb[i,18] <- summary(fit)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,19] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,20] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,21] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,22] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,23] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,24] <- shapiro.test(resid(fit))$p.value
+}
+
+# Just 3 significant figures
+lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Add congener names
+congeners <- colnames(hud.pcb.2)
+lme.pcb <- cbind(congeners, lme.pcb)
+# Add column names
+colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "flow", "flow.error", "flow.pv", "temperature",
+                       "temperature.error", "temperature.pv", "season2",
+                       "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.pcb, file = "Output/Data/csv/LmeHudPCB.csv")
+
+# Get predicted values for selected PCBs
+# tPCB vs. time + season + flow + temp
+# lme
+lme.hud.pcbi <- lmer(hud.pcb.2$PCB17 ~ 1 + time + flow + temper + season +
+                       (1|site), REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"))
+
+# See results
+summary(lme.hud.pcbi)
+# Look at residuals
+{
+  res.lme.hud.pcbi <- resid(lme.hud.pcbi) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.lme.hud.pcbi, main = expression(paste("Normal Q-Q Plot PCB 17")))
+  # Add a straight diagonal line to the plot
+  qqline(res.lme.hud.pcbi)
+}
+# Shapiro test
+shapiro.test(res.lme.hud.pcbi)
+
+# (1) Get predicted values pcbi
+date.pcbi <- format(hud.pcb.1$SampleDate, "%Y-%m-%d")
+obs <- hud.pcb.2$PCB17
+hud.pcbi <- cbind(date.pcbi, obs)
+# Remove NA value from observations
+hud.pcbi <- na.omit(hud.pcbi)
+fit.lme.values.pcbi <- as.data.frame(fitted(lme.hud.pcbi))
+hud.pcbi <- cbind(hud.pcbi, fit.lme.values.pcbi)
+colnames(hud.pcbi) <- c("date", "obs", 'lme')
+hud.pcbi$date <- as.Date(hud.pcbi$date)
+hud.pcbi$obs <- as.numeric(hud.pcbi$obs)
+
+# Plot residuals vs. predictions
+# lme
+{
+  plot(hud.pcbi$lme, res.lme.hud.pcbi,
+       points(hud.pcbi$lme, res.lme.hud.pcbi, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted concentration PCB 17 (pg/L)")),
+       ylab = "Residual (lme)")
+  abline(0, 0)
+  abline(h = seq(-2, 2, 1), col = "grey")
+  abline(v = seq(0.5, 3, 0.5), col = "grey")
+}
+
+# Modeling plots
+# Change data.frame format to be plotted
+hud.pcbi.2 <- melt(hud.pcbi, id.vars = c("date"))
+# Plot
+ggplot(hud.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
+  geom_point(aes(shape = variable, color = variable, size = variable,
+                 fill = variable)) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
+  scale_size_manual(values = c(2, 1)) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
+  scale_x_date(labels = date_format("%Y-%m")) +
+  scale_y_log10(limits = c(1, 10000)) +
+  xlab("") +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste("PCB 17 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  annotation_logticks(sides = "l",
+                      short = unit(0.5, "mm"),
+                      mid = unit(1.5, "mm"),
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2017-01-01", format = "%Y-%m-%d"),
+           y = 10000, label = "Hudson River", size = 3.5)
 
 
