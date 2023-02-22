@@ -264,6 +264,25 @@ hud.tpcb.2$temp <- 273 + temp$X_00010_00003[match(hud.tpcb.2$date,
 # Remove samples with temp = NA
 hud.tpcb.3 <- na.omit(hud.tpcb.2)
 
+# Time trend plots
+ggplot(hud.tpcb.3, aes(y = tPCB,
+                       x = format(date,'%Y-%m'))) +
+  geom_point(shape = 21, fill = "#66ccff") +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 10, y = 10^5.2, label = "Hudson River",
+           size = 4)
+
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
