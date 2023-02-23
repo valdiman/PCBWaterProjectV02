@@ -14,7 +14,6 @@
 # https://19january2021snapshot.epa.gov/new-bedford-harbor/general-information-about-new-bedford-harbor-cleanup_.html
 # https://semspub.epa.gov/work/01/100013466.pdf
 
-
 # Install packages
 install.packages("tidyverse")
 install.packages("ggplot2")
@@ -27,114 +26,87 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages("reshape")
 
 # Load libraries
-library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Select nbh River data ---------------------------------------------------
-nbh.0 <- wdc[str_detect(wdc$SiteName, 'New Bedford'),]
+nbh.0 <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
 
 # Data preparation --------------------------------------------------------
-# Remove samples (rows) with total PCBs  = 0
-nbh.1 <- nbh.0[!(rowSums(nbh.0[, c(14:117)], na.rm = TRUE)==0),]
-# Calculate total PCB
-tpcb.nbh <- rowSums(nbh.1[, c(14:117)], na.rm = T)
-# Change date format
-nbh.1$SampleDate <- as.Date(nbh.1$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(nbh.1$SampleDate) - min(as.Date(nbh.1$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- nbh.1$LocationID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(nbh.1$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-nbh.tpcb <- cbind(factor(nbh.1$LocationID), nbh.1$SampleDate,
-                  nbh.1$Latitude, nbh.1$Longitude, as.matrix(tpcb.nbh),
-                  data.frame(time.day), site.numb, season.s)
-# Add column names
-colnames(nbh.tpcb) <- c("LocationID", "date", "Latitude", "Longitude",
-                        "tPCB", "time", "site.code", "season")
+{
+  # Remove samples (rows) with total PCBs  = 0
+  nbh.1 <- nbh.0[!(rowSums(nbh.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb.nbh <- rowSums(nbh.1[, c(14:117)], na.rm = T)
+  # Change date format
+  nbh.1$SampleDate <- as.Date(nbh.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(nbh.1$SampleDate) - min(as.Date(nbh.1$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- nbh.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(nbh.1$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  nbh.tpcb <- cbind(factor(nbh.1$SiteID), nbh.1$SampleDate,
+                    nbh.1$Latitude, nbh.1$Longitude, as.matrix(tpcb.nbh),
+                    data.frame(time.day), site.numb, season.s)
+  # Add column names
+  colnames(nbh.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "time", "site.code", "season")
+}
 
 # Get coordinates per site to plot in Google Earth
-nbh.location <- nbh.tpcb[c('LocationID', 'Latitude', 'Longitude', 'tPCB')]
+nbh.location <- nbh.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
-nbh.location <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
-                            data = nbh.location, mean)
-
-# (2) Calculate total log PCB
-# Remove metadata
-nbh.log <- subset(nbh.1, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-nbh.log <- subset(nbh.log, select = -c(A1016:A1260))
-# Log 10 individual PCBs 
-nbh.log <- log10(nbh.log)
-# Replace -inf to NA
-nbh.log <- do.call(data.frame,
-                     lapply(nbh.log,
-                            function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-nbh.log.tpcb <- rowSums(nbh.log, na.rm = T)
-# Generate data.frame for analysis and plots
-nbh.log.tpcb <- cbind(factor(nbh.1$LocationID), nbh.1$SampleDate,
-                      as.matrix(nbh.log.tpcb), data.frame(time.day),
-                      site.numb, season.s)
-colnames(nbh.log.tpcb) <- c("LocationID", "date", "logtPCB", "time",
-                            "site.code", "season")
+nbh.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                          data = nbh.location, mean)
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
-# (1.1) tPCB
 hist(nbh.tpcb$tPCB)
 hist(log10(nbh.tpcb$tPCB))
-# (1.2) log.tPCB
-hist(nbh.log.tpcb$logtPCB)
-hist(log10(nbh.log.tpcb$logtPCB))
 
 # (2) Time trend plots
-# (2.1) tPCB
 ggplot(nbh.tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point() +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
-
-# (2.2) log.tPCB
-ggplot(nbh.log.tpcb, aes(y = logtPCB,
-                         x = format(date,'%Y%m'))) +
-  geom_point() +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 2.5, y = 10^5.3, label = "New Bedford Harbor",
+           size = 3)
 
 # (3) Seasonality
-# (3.1) tPCB
 ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
@@ -142,200 +114,76 @@ ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2006 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (3.2) log.tPCB
-ggplot(nbh.log.tpcb, aes(x = season, y = logtPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2016 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 1.5, y = 10^5.4, label = "New Bedford Harbor",
+           size = 3)
 
 # (4) Sites
-# (4.1) tPCB
-ggplot(nbh.tpcb, aes(x = factor(LocationID), y = tPCB)) + 
+ggplot(nbh.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2006 - 2016 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 15, y = 10^5.4, label = "New Bedford Harbor",
+           size = 3)
 
-# (4.2) log.tPCB
-ggplot(nbh.log.tpcb, aes(x = factor(LocationID), y = logtPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# Regressions -------------------------------------------------------------
-# (1) Perform linear regression (lr)
-# (1.1) tPCB vs. time
-lr.nbh.tpcb.t <- lm(log10(tPCB) ~ time, data = nbh.tpcb)
-# See results
-summary(lr.nbh.tpcb.t)
-# Look at residuals
-res <- resid(lr.nbh.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.2) log.tPCB vs. time
-lr.nbh.log.tpcb.t <- lm(logtPCB ~ time, data = nbh.log.tpcb)
-# See results
-summary(lr.nbh.log.tpcb.t)
-# Look at residuals
-res <- resid(lr.nbh.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.3) tPCB vs. season
-lr.nbh.tpcb.s <- lm(log10(tPCB) ~ season, data = nbh.tpcb)
-# See results
-summary(lr.nbh.tpcb.s)
-# Look at residuals
-res <- resid(lr.nbh.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.4) log.tPCB vs. season
-lr.nbh.log.tpcb.s <- lm(logtPCB ~ season, data = nbh.log.tpcb)
-# See results
-summary(lr.nbh.log.tpcb.s)
-# Look at residuals
-res <- resid(lr.nbh.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2) MLR
-# (2.1) tPCB vs. time + season (nbh.tpcb)
-mlr.nbh.tpcb <- lm(log10(tPCB) ~ time + season, data = nbh.tpcb)
-# See results
-summary(mlr.nbh.tpcb)
-# Look at residuals
-res <- resid(mlr.nbh.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.2) log.tPCB vs. time + season (nbh.log.tpcb)
-mlr.nbh.log.tpcb <- lm(logtPCB ~ time + season,
-                       data = nbh.log.tpcb)
-# See results
-summary(mlr.nbh.log.tpcb)
-# Look at residuals
-res <- resid(mlr.nbh.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + site (nbh.tpcb)
+# Perform Linear Mixed-Effects Model (LMEM)
+# Perform Linear Mixed-Effects Model (lme)
+# Get variables
 tpcb <- nbh.tpcb$tPCB
 time <- nbh.tpcb$time
 site <- nbh.tpcb$site.code
 season <- nbh.tpcb$season
-
+# tPCB vs. time + season + site
 lmem.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                  REML = FALSE,
-                  control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                        check.nobs.vs.rankZ = "ignore",
-                                        check.nobs.vs.nRE="ignore"))
+                      REML = FALSE,
+                      control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                            check.nobs.vs.rankZ = "ignore",
+                                            check.nobs.vs.nRE="ignore"))
 
 # See results
 summary(lmem.nbh.tpcb)
 # Look at residuals
-res.nbh.tpcb <- resid(lmem.nbh.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.nbh.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.nbh.tpcb)
+{
+  res.nbh.tpcb <- resid(lmem.nbh.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.nbh.tpcb, main = "log10(C)")
+  qqnorm(res.nbh.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.nbh.tpcb)
+}
 # Shapiro test
 shapiro.test(res.nbh.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+# Random effect site Std Dev
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.nbh.tpcb))[1,'sdcor']
 # Extract R2 no random effect
 R2.nre <- as.data.frame(r.squaredGLMM(lmem.nbh.tpcb))[1, 'R2m']
 # Extract R2 with random effect
@@ -345,125 +193,178 @@ R2.re <- as.data.frame(r.squaredGLMM(lmem.nbh.tpcb))[1, 'R2c']
 time.coeff <- summary(lmem.nbh.tpcb)$coef[2, "Estimate"]
 time.coeff.ste <- summary(lmem.nbh.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + site (nbh.log.tpcb.2)
-log.tpcb <- nbh.log.tpcb$logtPCB
-time <- nbh.log.tpcb$time
-site <- nbh.log.tpcb$site.code
-season <- nbh.log.tpcb$season
-
-lmem.nbh.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.nbh.log.tpcb)
-# Look at residuals
-res.nbh.log.tpcb <- resid(lmem.nbh.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.nbh.log.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.nbh.log.tpcb)
-# Shapiro test
-shapiro.test(res.nbh.log.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res.nbh.log.tpcb, 'pnorm')
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.nbh.log.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.nbh.log.tpcb))[1, 'R2c']
-
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.nbh.tpcb <- as.data.frame(fitted(lmem.nbh.tpcb))
+fit.lme.values.nbh.tpcb <- as.data.frame(fitted(lmem.nbh.tpcb))
 # Add column name
-colnames(fit.values.nbh.tpcb) <- c("predicted")
+colnames(fit.lme.values.nbh.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-nbh.tpcb$predicted <- 10^(fit.values.nbh.tpcb$predicted)
+nbh.tpcb$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(10, 1e6)) +
-  scale_y_log10(limits = c(10, 1e6)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 0.8) + # 1:1 line
-  geom_abline(intercept = 0.5, slope = 1, col = "blue", size = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.5, slope = 1, col = "blue", size = 0.8) + # 2:1 line (factor of 2)
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 100, y = 1000000,
-           label = 'New Bedford Harbor', colour = 'black', size = 4,
-           fontface = 2)
+  annotate('text', x = 500, y = 10^5.8,
+           label = expression("New Bedford Harbord (R"^2*"= 0.80)"),
+           size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
-plot(log10(nbh.tpcb$predicted), res.nbh.tpcb)
-abline(0, 0)
+{
+  plot(log10(nbh.tpcb$predicted), res.nbh.tpcb,
+       points(log10(nbh.tpcb$predicted), res.nbh.tpcb, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted lme concentration ",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  abline(h = c(-1, 1), col = "grey")
+  abline(v = seq(2, 5.5, 0.5), col = "grey")
+  }
 
-# (2) Get predicted values log.tpcb
-fit.values.nbh.log.tpcb <- as.data.frame(fitted(lmem.nbh.log.tpcb))
-# Add column name
-colnames(fit.values.nbh.log.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-nbh.log.tpcb.2$predicted <- fit.values.nbh.log.tpcb$predicted
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(nbh.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+# Plot time series with lme predictions
+# Create a data frame to storage data
+{
+  time.serie.tpcb <- as.data.frame(matrix(nrow = length(nbh.tpcb[,1]),
+                                          ncol = 3))
+  # Add name to columns
+  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'lmetPCB')
+  # Add data
+  time.serie.tpcb$date <- nbh.tpcb$date
+  time.serie.tpcb$tPCB <- nbh.tpcb$tPCB
+  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.nbh.tpcb)
+  # Change again the names
+  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
+  # Change data.frame format to be plotted
+  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
+}
+# Plot
+ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
+  geom_point(aes(shape = variable, color = variable, size = variable,
+                 fill = variable)) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
+  scale_size_manual(values = c(2, 1)) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
+  scale_x_date(labels = date_format("%Y")) +
+  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
+  #scale_y_log10(limits = c(10, 10000)) +
+  xlab("") +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
+  annotation_logticks(sides = "l",
+                      short = unit(0.5, "mm"),
+                      mid = unit(1.5, "mm"),
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2012-06-01", format = "%Y-%m-%d"),
+           y = 10^5.5, label = "New Bedford Harbor",
+           size = 3)
 
-ggplot(nbh.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(5, 1e2)) +
-  scale_y_log10(limits = c(5, 1e2)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
+# Individual PCB Analysis -------------------------------------------------
+# Use nbh.1 (no 0s samples)
+# Prepare data.frame
+{
+  nbh.pcb <- subset(nbh.1, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  nbh.pcb <- subset(nbh.pcb, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  nbh.pcb <- log10(nbh.pcb)
+  # Replace -inf to NA
+  nbh.pcb <- do.call(data.frame,
+                     lapply(nbh.pcb,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Remove individual PCB that have 30% or less NA values
+  nbh.pcb.1 <- nbh.pcb[,
+                       -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.7)]
+  # Add site ID
+  nbh.pcb.1$SiteID <- nbh.1$SiteID
+  # Change date format
+  nbh.pcb.1$SampleDate <- as.Date(nbh.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  nbh.pcb.1$time <- as.Date(nbh.1$SampleDate) - min(as.Date(nbh.1$SampleDate))
+  # Create individual code for each site sampled
+  nbh.pcb.1$site.numb <- nbh.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  nbh.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Remove metadata
+  nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season))
+}
 
-# Plot residuals vs. predictions
-plot(nbh.log.tpcb.2$predicted, res.nbh.log.tpcb)
-abline(0, 0)
+# Get covariates
+time <- nbh.pcb.1$time
+season <- nbh.pcb.1$season
+site <- nbh.pcb.1$site.numb
+
+# LME for individual PCBs -------------------------------------------------
+# Create matrix to store results
+lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 21)
+
+# Perform LME
+for (i in 1:length(nbh.pcb.2[1,])) {
+  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb[i,1] <- fixef(fit)[1] # intercept
+  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
+  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.pcb[i,4] <- fixef(fit)[2] # time
+  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
+  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.pcb[i,7] <- fixef(fit)[3] # season 1
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # season 1 p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # season 2
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 3
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+}
+
+# Just 3 significant figures
+lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Add congener names
+congeners <- colnames(nbh.pcb.2)
+lme.pcb <- cbind(congeners, lme.pcb)
+# Add column names
+colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "season2", "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
