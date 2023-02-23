@@ -1,18 +1,18 @@
 ## Water PCB concentrations data analysis per site
-# New Bedford Harbor
-# Background information
-# When the cleanup began, the areas with the highest levels
-# of PCBs were addressed first. A 5-acre northern portion
-# of the Acushnet River estuary was identified as the
-# "hot spot" area (about 14,000 yd3 of sediment exceeding
-# a concentration of about 4,000 mg/kg total PCB) and was
-# addressed prior to the start of the full scale dredging
-# in the upper and lower harbor. This cleanup took place
-# from 1994 to 1995 and the off-site disposal of the
-# resulting highly contaminated material was completed in 2000.
-# More infor:
-# https://19january2021snapshot.epa.gov/new-bedford-harbor/general-information-about-new-bedford-harbor-cleanup_.html
-# https://semspub.epa.gov/work/01/100013466.pdf
+## New Bedford Harbor
+## Background information
+## When the cleanup began, the areas with the highest levels
+## of PCBs were addressed first. A 5-acre northern portion
+## of the Acushnet River estuary was identified as the
+## "hot spot" area (about 14,000 yd3 of sediment exceeding
+## a concentration of about 4,000 mg/kg total PCB) and was
+## addressed prior to the start of the full scale dredging
+## in the upper and lower harbor. This cleanup took place
+## from 1994 to 1995 and the off-site disposal of the
+## resulting highly contaminated material was completed in 2000.
+# More info:
+## https://19january2021snapshot.epa.gov/new-bedford-harbor/general-information-about-new-bedford-harbor-cleanup_.html
+## https://semspub.epa.gov/work/01/100013466.pdf
 
 # Install packages
 install.packages("tidyverse")
@@ -153,7 +153,7 @@ ggplot(nbh.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 15, y = 10^5.4, label = "New Bedford Harbor",
            size = 3)
 
-# Perform Linear Mixed-Effects Model (LMEM)
+# tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- nbh.tpcb$tPCB
@@ -237,6 +237,11 @@ ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2, 5.5, 0.5), col = "grey")
   }
+
+# Estimate a factor of 2 between observations and predictions
+nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
+factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
+                              ])/length(nbh.tpcb[,1])*100
 
 # Plot time series with lme predictions
 # Create a data frame to storage data
