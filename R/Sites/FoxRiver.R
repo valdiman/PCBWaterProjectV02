@@ -326,6 +326,11 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   abline(v = seq(2, 3.5, 0.5), col = "grey")
   }
 
+# Estimate a factor of 2 between observations and predictions
+fox.tpcb.2$factor2 <- fox.tpcb.2$tPCB/fox.tpcb.2$predicted
+factor2.tpcb <- nrow(fox.tpcb.2[fox.tpcb.2$factor2 > 0.5 & fox.tpcb.2$factor2 < 2,
+                              ])/length(fox.tpcb.2[,1])*100
+
 # Plot time series with lme predictions
 # Create a data frame to storage data
 {
