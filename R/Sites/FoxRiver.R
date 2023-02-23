@@ -348,7 +348,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
                  fill = variable)) +
   scale_shape_manual(values = c(21, 3)) +
   scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1, 1)) +
+  scale_size_manual(values = c(2, 1)) +
   scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
   scale_x_date(labels = date_format("%Y-%m")) +
   scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
