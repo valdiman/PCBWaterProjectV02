@@ -92,8 +92,8 @@ ggplot(hou.tpcb, aes(y = tPCB,
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 21, y = 10^5.6, label = "Housotonic River",
-           size = 4)
+  annotate("text", x = 23, y = 10^5.6, label = "Housotonic River",
+           size = 3)
 
 # (3) Seasonality
 ggplot(hou.tpcb, aes(x = season, y = tPCB)) +
@@ -116,8 +116,8 @@ ggplot(hou.tpcb, aes(x = season, y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 3.5, y = 10^5.6, label = "Housotonic River",
-           size = 4)
+  annotate("text", x = 4, y = 10^5.6, label = "Housotonic River",
+           size = 3)
 
 # (4) Sites
 ggplot(hou.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
@@ -139,338 +139,213 @@ ggplot(hou.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 30, y = 10^5.6, label = "Housotonic River",
+  annotate("text", x = 32, y = 10^5.6, label = "Housotonic River",
            size = 3)
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Housatonic River
-siteHouN1 <- "01197000" # EAST BRANCH HOUSATONIC RIVER AT COLTSVILLE, MA
-siteHouN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
-# Codes to retrieve data
-paramflow <- "00060" # discharge, ft3/s
-# paramtemp <- "00010" # water temperature, C No data available
-# Retrieve USGS data
-flow.1 <- readNWISdv(siteHouN1, paramflow,
-                     min(hou.tpcb$date), max(hou.tpcb$date))
-flow.2 <- readNWISdv(siteHouN2, paramflow,
-                     min(hou.tpcb$date), max(hou.tpcb$date))
-# Add USGS data to hou.tpcb, matching dates (m3/s, 0.03 conversion factor)
-hou.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(hou.tpcb$date,
-                                              flow.1$Date)]
-hou.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(hou.tpcb$date,
-                                              flow.2$Date)]
-# Add USGS data to hou.log.tpcb, matching dates
-hou.log.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(hou.log.tpcb$date,
-                                                  flow.1$Date)]
-hou.log.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(hou.log.tpcb$date,
-                                                  flow.2$Date)]
+{
+  siteHouN1 <- "01197000" # EAST BRANCH HOUSATONIC RIVER AT COLTSVILLE, MA
+  siteHouN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  # paramtemp <- "00010" # water temperature, C No data available
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteHouN1, paramflow,
+                       min(hou.tpcb$date), max(hou.tpcb$date))
+  flow.2 <- readNWISdv(siteHouN2, paramflow,
+                       min(hou.tpcb$date), max(hou.tpcb$date))
+  # Add USGS data to hou.tpcb, matching dates (m3/s, 0.03 conversion factor)
+  hou.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(hou.tpcb$date,
+                                                     flow.1$Date)]
+  hou.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(hou.tpcb$date,
+                                                     flow.2$Date)]
+}
 
-
-
-# (1.3) Perform Linear Mixed-Effects Model (LMEM)
-# (1.3.1) tPCB vs. time + season + flow + site
+# tPCB Regressions --------------------------------------------------------
+# (1.3) Perform Linear Mixed-Effects Model (Lme)
+# Get variables
 tpcb <- hou.tpcb$tPCB
 time <- hou.tpcb$time
 site <- hou.tpcb$site.code
 season <- hou.tpcb$season
-flow <- hou.tpcb$flow.1
-
-lmem.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
+flow <- hou.tpcb$flow.2
+# tPCB vs. time + season + flow + site
+lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
                                         check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.hou.tpcb)
+summary(lme.hou.tpcb)
+
 # Look at residuals
-res.hou.tpcb <- resid(lmem.hou.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.hou.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.hou.tpcb)
+{
+  res.hou.tpcb <- resid(lme.hou.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.hou.tpcb, main = "log10(C)")
+  qqnorm(res.hou.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.hou.tpcb)
+}
 # Shapiro test
 shapiro.test(res.hou.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+# Lme does not provide a good model. Not more to do here. 
+
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.hou.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.hou.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.hou.tpcb))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lme.hou.tpcb))[1, 'R2c']
 
 # Extract coefficient values
-time.coeff <- summary(lmem.hou.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.hou.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.hou.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.hou.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
 t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (1.3.2) log.tPCB vs. time + season + flow + temp + site (hou.log.tpcb.2)
-log.tpcb <- hou.log.tpcb$logtPCB
-time <- hou.log.tpcb$time
-site <- hou.log.tpcb$site.code
-season <- hou.log.tpcb$season
-flow <- hou.log.tpcb$flow.1
+# Modeling plots
+# (1) Get predicted values tpcb
+fit.lme.values.hou.tpcb <- as.data.frame(fitted(lme.hou.tpcb))
+# Add column name
+colnames(fit.lme.values.hou.tpcb) <- c("predicted")
+# Add predicted values to data.frame
+hou.tpcb$predicted <- 10^(fit.lme.values.hou.tpcb$predicted)
 
-lmem.hou.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + flow + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE="ignore"))
+# Plot prediction vs. observations, 1:1 line
+ggplot(hou.tpcb, aes(x = tPCB, y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 10, y = 10^4,
+           label = expression("Housotonic River (R"^2*"= 0.34)"),
+           size = 3, fontface = 2)
 
-# See results
-summary(lmem.hou.log.tpcb)
-# Look at residuals
-res.hou.log.tpcb <- resid(lmem.hou.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.hou.log.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.hou.log.tpcb)
-# Shapiro test
-shapiro.test(res.hou.log.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res.hou.log.tpcb, 'pnorm')
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.hou.log.tpcb))[1, 'R2c']
+# Plot residuals vs. predictions
+{
+  plot(log10(hou.tpcb$predicted), res.hou.tpcb,
+       points(log10(hou.tpcb$predicted), res.hou.tpcb, pch = 16, 
+              col = "#66ccff"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted lme concentration ",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  abline(h = c(-1, 1), col = "grey")
+  abline(v = seq(1, 3.5, 0.2), col = "grey")
+  }
+
+# Estimate a factor of 2 between observations and predictions
+hou.tpcb$factor2 <- hou.tpcb$tPCB/hou.tpcb$predicted
+factor2.tpcb <- nrow(hou.tpcb[hou.tpcb$factor2 > 0.5 & hou.tpcb$factor2 < 2,
+                                ])/length(hou.tpcb[,1])*100
 
 # (2) Selected sites ----------------------------------------------------------
-# Due to many dredging operations and issues with data
-# only sites close to USGS station were selected for regression
-# analysis
-hou.tpcb.20 <- subset(hou.tpcb, location == "WCPCB-HOU020") # flow.1 @ Hubbard Ave Bridge
+## Due to many dredging operations and issues with data
+## only sites close to USGS station were selected for regression
+## analysis
+hou.tpcb.20 <- subset(hou.tpcb, SiteID == "WCPCB-HOU020") # flow.1 @ Hubbard Ave Bridge
 
-hou.tpcb.8 <- subset(hou.tpcb, location == "WCPCB-HOU008") # @ Division St Bridge
+hou.tpcb.8 <- subset(hou.tpcb, SiteID == "WCPCB-HOU008") # @ Division St Bridge
 
-ggplot(hou.tpcb.8, aes(y = tPCB,
-                       x = format(date,'%Y'))) +
-  geom_point() +
+# Plots
+# Hubbard Ave Bridge
+ggplot(hou.tpcb.20, aes(y = tPCB,
+                     x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 17, y = 10^3, label = "Housotonic River (Hubbard Ave Bridge)",
+           size = 3)
 
-# (2.1) Perform linear regression (lr)
-# (2.1.1) tPCB vs. time
-lr.hou.tpcb.t <- lm(log10(tPCB) ~ time, data = hou.tpcb.20)
-# See results
-summary(lr.hou.tpcb.t)
-# Look at residuals
-res <- resid(lr.hou.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+# Division St Bridge
+ggplot(hou.tpcb.8, aes(y = tPCB,
+                        x = format(date,'%Y'))) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 17, y = 10^6, label = "Housotonic River (Division St Bridge)",
+           size = 3)
 
-# (2.1.2) log.tPCB vs. time
-lr.hou.log.tpcb.t <- lm(logtPCB ~ time, data = hou.log.tpcb)
-# See results
-summary(lr.hou.log.tpcb.t)
-# Look at residuals
-res <- resid(lr.hou.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.1.3) tPCB vs. season
-lr.hou.tpcb.s <- lm(log10(tPCB) ~ season, data = hou.tpcb.20)
-# See results
-summary(lr.hou.tpcb.s)
-# Look at residuals
-res <- resid(lr.hou.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.1.4) log.tPCB vs. season
-lr.hou.log.tpcb.s <- lm(logtPCB ~ season, data = hou.log.tpcb)
-# See results
-summary(lr.hou.log.tpcb.s)
-# Look at residuals
-res <- resid(lr.hou.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.1.5) tPCB vs. flow
-lr.hou.tpcb.f <- lm(log10(tPCB) ~ flow.2, data = hou.tpcb.2)
-# See results
-summary(lr.hou.tpcb.f)
-# Look at residuals
-res <- resid(lr.hou.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.1.6) log.tPCB vs. flow
-lr.hou.log.tpcb.f <- lm(logtPCB ~ flow.1, data = hou.log.tpcb)
-# See results
-summary(lr.hou.log.tpcb.f)
-# Look at residuals
-res <- resid(lr.hou.log.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.2) MLR
-# (2.2.1) tPCB vs. time + season + flow
+# tPCB Regressions --------------------------------------------------------
+# MLR tPCB vs. time + season + flow
 mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
                    data = hou.tpcb.8)
 # See results
 summary(mlr.hou.tpcb)
 # Look at residuals
-res <- resid(mlr.hou.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res.hou.tpcb <- resid(mlr.hou.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.hou.tpcb, main = "log10(C)")
+  qqnorm(res.hou.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.hou.tpcb)
+}
+
 # Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+shapiro.test(res.hou.tpcb)
+# Lme does predict a good model.
 
-# (2.2.2) log.tPCB vs. time + season + flow
-mlr.hou.log.tpcb <- lm(logtPCB ~ time + season + flow.1,
-                       data = hou.log.tpcb.2)
-# See results
-summary(mlr.hou.log.tpcb)
-# Look at residuals
-res <- resid(mlr.hou.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# Extract coefficient values
-time.coeff <- summary(lmem.hou.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.hou.tpcb)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
-
-# Predictions -------------------------------------------------------------
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.hou.tpcb <- as.data.frame(fitted(mlr.hou.tpcb))
+fit.mlr.values.hou.tpcb <- as.data.frame(fitted(mlr.hou.tpcb))
 # Add column name
-colnames(fit.values.hou.tpcb) <- c("predicted")
+colnames(fit.mlr.values.hou.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-hou.tpcb.hab$predicted <- 10^(fit.values.hou.tpcb$predicted)
+hou.tpcb.8$predicted <- 10^(fit.mlr.values.hou.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb.n, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+ggplot(hou.tpcb.8, aes(x = tPCB, y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(hou.tpcb.n, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(1, 1e3)) +
-  scale_y_log10(limits = c(1, 1e3)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 5, y = 1000,
-           label = 'Housatonic River', colour = 'black', size = 4,
-           fontface = 2)
-
-# Plot residuals vs. predictions
-plot(log10(hou.tpcb.n$predicted), res.hou.tpcb)
-abline(0, 0)
-
-# (2) Get predicted values log.tpcb
-fit.values.hou.log.tpcb <- as.data.frame(fitted(lmem.hou.log.tpcb))
-# Add column name
-colnames(fit.values.hou.log.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-hou.log.tpcb.2$predicted <- fit.values.hou.log.tpcb$predicted
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(hou.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(hou.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(5, 1e2)) +
-  scale_y_log10(limits = c(5, 1e2)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# Plot residuals vs. predictions
-plot(hou.log.tpcb.2$predicted, res.hou.log.tpcb)
-abline(0, 0)
+  annotate('text', x = 50, y = 10^3,
+           label = expression("Housotonic River (R"^2*"= 0.78)"),
+           size = 3, fontface = 2)
