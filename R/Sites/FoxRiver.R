@@ -93,7 +93,7 @@ ggplot(fox.tpcb, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
   
 # (3) Seasonality
 ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
@@ -117,7 +117,7 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
 
 # (4) Sites
 ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
@@ -140,7 +140,7 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 7.8, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
 
 # Remove site -------------------------------------------------------------
 # Remove site Lake Winnebago (background site)
@@ -168,7 +168,7 @@ ggplot(fox.tpcb.2, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
 
 # (3) Seasonality
 ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
@@ -192,7 +192,7 @@ ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
 
 # (4) Sites
 ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
@@ -215,7 +215,7 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 6.8, y = 10^5, label = "Fox River",
-           size = 4)
+           size = 3)
 
 # Include USGS flow data --------------------------------------------------
 {
@@ -249,17 +249,17 @@ season <- fox.tpcb.2$season
 flow <- fox.tpcb.2$flow
 tem <- fox.tpcb.2$temp
 # tPCB vs. time + season + flow + temp + site
-lmem.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
+lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
                                         check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.fox.tpcb)
+summary(lme.fox.tpcb)
 # Look at residuals
 {
-  res.fox.tpcb <- resid(lmem.fox.tpcb) # get list of residuals
+  res.fox.tpcb <- resid(lme.fox.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res.fox.tpcb, main = "log10(C)")
   qqnorm(res.fox.tpcb,
@@ -271,15 +271,15 @@ summary(lmem.fox.tpcb)
 # Shapiro test
 shapiro.test(res.fox.tpcb)
 # Random effect site Std Dev
-RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.fox.tpcb))[1,'sdcor']
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.fox.tpcb))[1,'sdcor']
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.fox.tpcb))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2c']
 
 # Extract coefficient values
-time.coeff <- summary(lmem.fox.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.fox.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.fox.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.fox.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
 t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
@@ -287,7 +287,7 @@ t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.lme.values.fox.tpcb <- as.data.frame(fitted(lmem.fox.tpcb))
+fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
 # Add column name
 colnames(fit.lme.values.fox.tpcb) <- c("predicted")
 # Add predicted values to data.frame
@@ -296,21 +296,21 @@ fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 # Plot prediction vs. observations, 1:1 line
 ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 100, y = 10^4.9,
+  annotate('text', x = 50, y = 10^4.5,
            label = expression("Fox River (R"^2*"= 0.78)"),
-           size = 4, fontface = 2)
+           size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
 {
@@ -488,14 +488,35 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 # Export results
 write.csv(lme.pcb, file = "Output/Data/csv/LmeFoxPCB.csv")
 
+# Generate predictions
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(fox.pcb.3[,1]),
+                  ncol = length(fox.pcb.3[1,]))
+
+for (i in 1:length(fox.pcb.3[1,])) {
+  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  lme.fit.pcb[,i] <- fitted(fit)
+}
+
+# Estimate a factor of 2 between observations and predictions
+factor2 <- 10^(fox.pcb.3)/10^(lme.fit.pcb)
+factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
+                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
 # Get predicted values for selected PCBs
 # tPCB vs. time + season + flow + temp
 # lme
 lme.fox.pcbi <- lmer(fox.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
                        (1|site), REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                  check.nobs.vs.rankZ = "ignore",
-                                  check.nobs.vs.nRE="ignore"))
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"),
+                     na.action = na.exclude)
 
 # See results
 summary(lme.fox.pcbi)
@@ -509,8 +530,6 @@ summary(lme.fox.pcbi)
 }
 # Shapiro test
 shapiro.test(res.lme.fox.pcbi)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res.lme.fox.pcbi, 'pnorm')
 
 # (1) Get predicted values pcbi
 date.pcbi <- format(fox.pcb.2$SampleDate, "%Y-%m-%d")
@@ -537,6 +556,34 @@ fox.pcbi$obs <- as.numeric(fox.pcbi$obs)
   abline(h = seq(-2, 2, 1), col = "grey")
   abline(v = seq(0.5, 2, 0.5), col = "grey")
 }
+
+# Modeling plots
+# (1) Get predicted values tpcb
+fit.lme.values.fox.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
+# Add column name
+colnames(fit.lme.values.fox.pcbi) <- c("predicted")
+# Add predicted values to data.frame
+fox.pcb.3$predicted <- 10^(fit.lme.values.fox.pcbi$predicted)
+
+# Plot prediction vs. observations, 1:1 line
+ggplot(fox.pcb.3, aes(x = PCB17, y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 50, y = 10^4.5,
+           label = expression("Fox River (R"^2*"= 0.78)"),
+           size = 3, fontface = 2)
+
 
 # Modeling plots
 # Change data.frame format to be plotted
