@@ -217,7 +217,7 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 6.8, y = 10^5, label = "Fox River",
            size = 3)
 
-# Include USGS flow data --------------------------------------------------
+# Include USGS flow and temperature data --------------------------------------------------
 {
   # Include flow data from USGS station Fox River
   sitefoxN1 <- "04084445" # flow @ OX RIVER AT APPLETON, WI
@@ -427,6 +427,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   fox.pcb.3 <- subset(fox.pcb.2, select = -c(SiteID:temp))
 }
 
+# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- fox.pcb.2$time
 flow <- fox.pcb.2$flow
@@ -434,7 +435,6 @@ temper <- fox.pcb.2$temp
 season <- fox.pcb.2$season
 site <- fox.pcb.2$site.numb
 
-# LME for individual PCBs -------------------------------------------------
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(fox.pcb.3[1,]), ncol = 24)
 
@@ -508,8 +508,7 @@ factor2 <- 10^(fox.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
-# Get predicted values for selected PCBs
-# tPCB vs. time + season + flow + temp
+# Selected individual PCB regression --------------------------------------
 # lme
 lme.fox.pcbi <- lmer(fox.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
                        (1|site), REML = FALSE,
@@ -530,13 +529,22 @@ summary(lme.fox.pcbi)
 }
 # Shapiro test
 shapiro.test(res.lme.fox.pcbi)
+# Extract R2 no random effect
+R2.nre <- as.data.frame(r.squaredGLMM(lme.fox.pcbi))[1, 'R2m']
+# Extract R2 with random effect
+R2.re <- as.data.frame(r.squaredGLMM(lme.fox.pcbi))[1, 'R2c']
+# Extract coefficient values
+time.coeff <- summary(lme.fox.pcbi)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.fox.pcbi)$coef[2, "Std. Error"]
+# Calculate half-life tPCB in yr (-log(2)/slope/365)
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
+# Calculate error
+t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # (1) Get predicted values pcbi
 date.pcbi <- format(fox.pcb.2$SampleDate, "%Y-%m-%d")
 obs <- fox.pcb.3$PCB17
 fox.pcbi <- cbind(date.pcbi, obs)
-# Remove NA value from observations
-fox.pcbi <- na.omit(fox.pcbi)
 fit.lme.values.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
 fox.pcbi <- cbind(fox.pcbi, fit.lme.values.pcbi)
 colnames(fox.pcbi) <- c("date", "obs", 'lme')
@@ -544,7 +552,6 @@ fox.pcbi$date <- as.Date(fox.pcbi$date)
 fox.pcbi$obs <- as.numeric(fox.pcbi$obs)
 
 # Plot residuals vs. predictions
-# lme
 {
   plot(fox.pcbi$lme, res.lme.fox.pcbi,
        points(fox.pcbi$lme, res.lme.fox.pcbi, pch = 16, 
@@ -566,24 +573,24 @@ colnames(fit.lme.values.fox.pcbi) <- c("predicted")
 fox.pcb.3$predicted <- 10^(fit.lme.values.fox.pcbi$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(fox.pcb.3, aes(x = PCB17, y = predicted)) +
+ggplot(fox.pcb.3, aes(x = 10^(PCB17), y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  xlab(expression(bold("Observed concentration PCB 17 (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration PCB 17 (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^4.5,
-           label = expression("Fox River (R"^2*"= 0.78)"),
+  annotate('text', x = 0.7, y = 10^2.8,
+           label = expression(atop("Fox River (R"^2*"= 0.81)",
+                                   paste("t"[1/2]*" = 14 ± 3"))),
            size = 3, fontface = 2)
-
 
 # Modeling plots
 # Change data.frame format to be plotted
