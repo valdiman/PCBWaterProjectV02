@@ -276,7 +276,6 @@ RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.fox.tpcb))[1,'sdcor']
 R2.nre <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2m']
 # Extract R2 with random effect
 R2.re <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2c']
-
 # Extract coefficient values
 time.coeff <- summary(lme.fox.tpcb)$coef[2, "Estimate"]
 time.coeff.ste <- summary(lme.fox.tpcb)$coef[2, "Std. Error"]
@@ -308,8 +307,9 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^4.5,
-           label = expression("Fox River (R"^2*"= 0.78)"),
+  annotate('text', x = 50, y = 10^4.3,
+           label = expression(atop("Fox River (R"^2*"= 0.78)",
+                              paste("t"[1/2]*" = 11 ± 2 (yr)"))),
            size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
@@ -358,11 +358,10 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   scale_x_date(labels = date_format("%Y-%m")) +
   scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  #scale_y_log10(limits = c(10, 10000)) +
   xlab("") +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
