@@ -97,7 +97,7 @@ ggplot(hud.tpcb, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 20, y = 10^5.3, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # (3) Seasonality
 ggplot(hud.tpcb, aes(x = season, y = tPCB)) +
@@ -121,7 +121,7 @@ ggplot(hud.tpcb, aes(x = season, y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 4, y = 10^5.7, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # (4) Sites
 ggplot(hud.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
@@ -144,7 +144,7 @@ ggplot(hud.tpcb, aes(x = factor(SiteID), y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 14, y = 400, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # Remove site -------------------------------------------------------------
 ## Remove site Bakers Falls. Upstream source
@@ -175,7 +175,7 @@ ggplot(hud.tpcb.2, aes(y = tPCB,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 20, y = 10^5.2, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # (3) Seasonality
 ggplot(hud.tpcb.2, aes(x = season, y = tPCB)) +
@@ -199,7 +199,7 @@ ggplot(hud.tpcb.2, aes(x = season, y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1.2, y = 800, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # (4) Sites
 ggplot(hud.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
@@ -222,7 +222,7 @@ ggplot(hud.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 3, y = 1000, label = "Hudson River",
-           size = 4)
+           size = 3)
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Hudson River
@@ -290,20 +290,20 @@ tpcb <- hud.tpcb.3$tPCB
 time <- hud.tpcb.3$time
 site <- hud.tpcb.3$site.code
 season <- hud.tpcb.3$season
-flow <- hud.tpcb.3$flow.3
+flow <- hud.tpcb.3$flow.1
 tem <- hud.tpcb.3$temp
 # tPCB vs. time + season + flow + temp + site
-lmem.hud.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
+lme.hud.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
                                             check.nobs.vs.rankZ = "ignore",
                                             check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.hud.tpcb)
+summary(lme.hud.tpcb)
 # Look at residuals
 {
-  res.hud.tpcb <- resid(lmem.hud.tpcb) # get list of residuals
+  res.hud.tpcb <- resid(lme.hud.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res.hud.tpcb, main = "log10(C)")
   qqnorm(res.hud.tpcb,
@@ -315,15 +315,14 @@ summary(lmem.hud.tpcb)
 # Shapiro test
 shapiro.test(res.hud.tpcb)
 # Random effect site Std Dev
-RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.hud.tpcb))[1,'sdcor']
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.hud.tpcb))[1,'sdcor']
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.hud.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.hud.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.hud.tpcb))[1, 'R2c']
-
+R2.re <- as.data.frame(r.squaredGLMM(lme.hud.tpcb))[1, 'R2c']
 # Extract coefficient values
-time.coeff <- summary(lmem.hud.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.hud.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.hud.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.hud.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
 t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
@@ -331,7 +330,7 @@ t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.lme.values.hud.tpcb <- as.data.frame(fitted(lmem.hud.tpcb))
+fit.lme.values.hud.tpcb <- as.data.frame(fitted(lme.hud.tpcb))
 # Add column name
 colnames(fit.lme.values.hud.tpcb) <- c("predicted")
 # Add predicted values to data.frame
@@ -354,7 +353,7 @@ ggplot(hud.tpcb.3, aes(x = tPCB, y = predicted)) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 900, y = 10^5.8,
            label = expression("Hudson River (R"^2*"= 0.80)"),
-           size = 4, fontface = 2)
+           size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
 {
@@ -369,6 +368,11 @@ ggplot(hud.tpcb.3, aes(x = tPCB, y = predicted)) +
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2, 4.5, 0.5), col = "grey")
   }
+
+# Estimate a factor of 2 between observations and predictions
+hud.tpcb.3$factor2 <- hud.tpcb.3$tPCB/hud.tpcb.3$predicted
+factor2.tpcb <- nrow(hud.tpcb.3[hud.tpcb.3$factor2 > 0.5 & hud.tpcb.3$factor2 < 2,
+                                ])/length(hud.tpcb.3[,1])*100
 
 # Plot time series with lme predictions
 # Create a data frame to storage data
@@ -415,10 +419,9 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
            y = 10^5.2, label = "Hudson River", size = 3.5)
 
 # Individual PCB Analysis -------------------------------------------------
-# Use hud.1 (no 0s samples)
 # Prepare data.frame
 {
-  hud.pcb <- subset(hud.1, select = -c(SampleID:AroclorCongener))
+  hud.pcb <- subset(hud.0, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
   hud.pcb <- subset(hud.pcb, select = -c(A1016:A1260))
   # Log10 individual PCBs 
@@ -478,7 +481,8 @@ for (i in 1:length(hud.pcb.2[1,])) {
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
-                                    check.nobs.vs.nRE="ignore"))
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
   lme.pcb[i,1] <- fixef(fit)[1] # intercept
   lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
   lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -521,6 +525,10 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/csv/LmeHudPCB.csv")
+
+
+
+
 
 # Get predicted values for selected PCBs
 # tPCB vs. time + season + flow + temp
