@@ -315,7 +315,8 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 200, y = 10^5.4,
-           label = expression("Kalamazoo River (R"^2*"= 0.97)"),
+           label = expression(atop(("Kalamazoo River (R"^2*"= 0.97)"),
+                                   paste("t"[1/2]*" = X ± Y (yr)"))),
            size = 4, fontface = 2)
 
 # Plot residuals vs. predictions
@@ -331,6 +332,11 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(1, 5, 0.5), col = "grey")
   }
+
+# Estimate a factor of 2 between observations and predictions
+kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
+factor2.tpcb <- nrow(fox.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
+                                ])/length(kal.tpcb.2[,1])*100
 
 # Plot time series with lme predictions
 # Create a data frame to storage data
