@@ -15,107 +15,85 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 
 # Load libraries
-library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Select Spokane River data ---------------------------------------------------
-spo <- wdc[str_detect(wdc$SiteName, 'Spokane River'),]
+spo.0 <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 
 # Data preparation --------------------------------------------------------
-# Calculate total PCB
-tpcb.spo <- rowSums(spo[, c(14:117)], na.rm = T)
-# Change date format
-spo$SampleDate <- as.Date(spo$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(spo$SampleDate) - min(as.Date(spo$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- spo.1$LocationID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-spo.tpcb <- cbind(factor(spo$LocationID), spo$SampleDate,
-                  spo$Latitude, spo$Longitude, as.matrix(tpcb.spo),
-                  data.frame(time.day), site.numb, season.s)
-# Add column names
-colnames(spo.tpcb) <- c("locationID", "date", "Latitude", "Longitude",
-                        "tPCB", "time", "site.code", "season")
+{
+  # Remove samples (rows) with total PCBs  = 0
+  spo.1 <- spo.0[!(rowSums(spo.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb.spo <- rowSums(spo.1[, c(14:117)], na.rm = T)
+  # Change date format
+  spo.1$SampleDate <- as.Date(spo.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(spo.1$SampleDate) - min(as.Date(spo.1$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- spo.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(spo.1$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  spo.tpcb <- cbind(factor(spo.1$SiteID), spo.1$SampleDate,
+                    spo.1$Latitude, spo.1$Longitude, as.matrix(tpcb.spo),
+                    data.frame(time.day), site.numb, season.s)
+  # Add column names
+  colnames(spo.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "time", "site.code", "season")
+}
 
 # Get coordinates per site to plot in Google Earth
-spo.location <- spo.tpcb[c('locationID', 'Latitude', 'Longitude', 'tPCB')]
+spo.location <- spo.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
-spo.location <- aggregate(tPCB ~ locationID + Latitude + Longitude,
-                            data = spo.location, mean)
-
-# (2) Calculate total log PCB
-# Remove metadata
-spo.log <- subset(spo, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-spo.log <- subset(spo.log, select = -c(A1016:A1260))
-# Log 10 individual PCBs 
-spo.log <- log10(spo.log)
-# Replace -inf to NA
-spo.log <- do.call(data.frame,
-                     lapply(spo.log,
-                            function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-spo.log.tpcb <- rowSums(spo.log, na.rm = T)
-# Generate data.frame for analysis and plots
-spo.log.tpcb <- cbind(factor(spo$LocationID), spo$SampleDate,
-                      as.matrix(spo.log.tpcb), data.frame(time.day),
-                      site.numb, season.s)
-colnames(spo.log.tpcb) <- c("locationID", "date", "logtPCB", "time",
-                            "site.code", "season")
+spo.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                          data = spo.location, mean)
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
 # (1.1) tPCB
 hist(spo.tpcb$tPCB)
 hist(log10(spo.tpcb$tPCB))
-# (1.2) log.tPCB
-hist(spo.log.tpcb$logtPCB)
 
 # (2) Time trend plots
-# (2.1) tPCB
 ggplot(spo.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y%m'))) +
-  geom_point() +
+                     x = format(date,'%Y-%m'))) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
-
-# (2.2) log.tPCB
-ggplot(spo.log.tpcb, aes(y = logtPCB,
-                         x = format(date,'%Y%m'))) +
-  geom_point() +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 5, y = 10^4.2, label = "Spokane River",
+           size = 3)
 
 # (3) Seasonality
-# (3.1) tPCB
 ggplot(spo.tpcb, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
@@ -123,86 +101,44 @@ ggplot(spo.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (3.2) log.tPCB
-ggplot(spo.log.tpcb, aes(x = season, y = logtPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 1, y = 10^4.2, label = "Spokane River",
+           size = 3)
 
 # (4) Sites
-# From ~east to ~west
-sites <- c("NinemileDam", "HangmanCreek", "SpokaneWRF",
-           "TrentStreetBridge", "GreeneStreetBridge",
-           "RegionalWRF", "InlandEmpirePaper",
-           "KaiserAluminum", "BarkerRoadBridge",
-           "LibertyLakeSewer", "PostFalls",
-           "PostFallsWWTP", "Coeurd'AleneWWTP",
-           "LakeCoeurd'Alene")
-
-# (4.1) tPCB
-ggplot(spo.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) + 
+ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2014 - 2016 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (4.2) log.tPCB
-ggplot(spo.log.tpcb, aes(x = factor(site), y = logtPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 7.8, y = 10^5, label = "Fox River",
+           size = 3)
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Spokane River
