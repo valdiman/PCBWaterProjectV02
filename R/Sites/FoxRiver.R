@@ -331,50 +331,6 @@ fox.tpcb.2$factor2 <- fox.tpcb.2$tPCB/fox.tpcb.2$predicted
 factor2.tpcb <- nrow(fox.tpcb.2[fox.tpcb.2$factor2 > 0.5 & fox.tpcb.2$factor2 < 2,
                               ])/length(fox.tpcb.2[,1])*100
 
-# Plot time series with lme predictions
-# Create a data frame to storage data
-{
-  time.serie.tpcb <- as.data.frame(matrix(nrow = length(fox.tpcb.2[,1]),
-                                          ncol = 3))
-  # Add name to columns
-  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'lmetPCB')
-  # Add data
-  time.serie.tpcb$date <- fox.tpcb.2$date
-  time.serie.tpcb$tPCB <- fox.tpcb.2$tPCB
-  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.fox.tpcb)
-  # Change again the names
-  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
-  # Change data.frame format to be plotted
-  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
-}
-# Plot
-ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 10^3.8, label = "Fox River", size = 3)
-
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
 # Prepare data.frame
@@ -590,34 +546,3 @@ ggplot(fox.pcb.3, aes(x = 10^(PCB17), y = predicted)) +
            label = expression(atop("Fox River (R"^2*"= 0.81)",
                                    paste("t"[1/2]*" = 14 ± 3 (yr)"))),
            size = 3, fontface = 2)
-
-# Modeling plots
-# Change data.frame format to be plotted
-fox.pcbi.2 <- melt(fox.pcbi, id.vars = c("date"))
-# Plot
-ggplot(fox.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(1, 1000)) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste("PCB 17 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 850, label = "Fox River", size = 3)
-
