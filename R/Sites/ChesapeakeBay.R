@@ -1,5 +1,5 @@
 ## Water PCB concentrations data analysis per site
-# Chesapeake Bay & Delaware Canal
+## Chesapeake Bay & Delaware Canal
 
 # Install packages
 install.packages("tidyverse")
@@ -11,113 +11,89 @@ install.packages("Matrix")
 install.packages("lme4")
 install.packages("MuMIn")
 install.packages("lmerTest")
-install.packages("Matrix")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages("reshape")
 
 # Load libraries
-library(ggplot2)
-library(scales) # function trans_breaks
-library(stringr) # str_detect
-library(robustbase) # function colMedians
-library(dplyr) # performs %>%
-library(tibble) # adds a column
-library(lme4) # performs lme
-library(MuMIn) # gets Rs from lme
-library(lmerTest) # gets the p-value from lme
-library(zoo) # yields seasons
-library(dataRetrieval) # read data from USGS
+{
+  library(ggplot2)
+  library(scales) # function trans_breaks
+  library(stringr) # str_detect
+  library(robustbase) # function colMedians
+  library(dplyr) # performs %>%
+  library(tibble) # adds a column
+  library(lme4) # performs lme
+  library(MuMIn) # gets Rs from lme
+  library(lmerTest) # gets the p-value from lme
+  library(zoo) # yields seasons
+  library(dataRetrieval) # read data from USGS
+  library(reshape)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Select Chesapeake Bay & Delaware Canal data ---------------------------------------------------
-che.0 <- wdc[str_detect(wdc$SiteName, 'Chesapeake Bay'),]
+che.0 <- wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),]
 
 # Data preparation --------------------------------------------------------
-# Calculate total PCB
-tpcb.che <- rowSums(che.0[, c(14:117)], na.rm = T)
-# Change date format
-che.0$SampleDate <- as.Date(che.0$SampleDate, format = "%m/%d/%y")
-# Calculate sampling time
-time.day <- data.frame(as.Date(che.0$SampleDate) - min(as.Date(che.0$SampleDate)))
-# Create individual code for each site sampled
-site.numb <- che.0$LocationID %>% as.factor() %>% as.numeric
-# Include season
-yq.s <- as.yearqtr(as.yearmon(che.0$SampleDate, "%m/%d/%Y") + 1/12)
-season.s <- factor(format(yq.s, "%q"), levels = 1:4,
-                   labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-# Create data frame
-che.tpcb <- cbind(factor(che.0$LocationID), che.0$SampleDate,
-                  che.0$Latitude, che.0$Longitude, as.matrix(tpcb.che),
-                  data.frame(time.day), site.numb, season.s)
-# Add column names
-colnames(che.tpcb) <- c("LocationID", "date", "Latitude", "Longitude",
-                        "tPCB", "time", "site.code", "season")
+{
+  # Remove samples (rows) with total PCBs  = 0
+  che.1 <- che.0[!(rowSums(che.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb.che <- rowSums(che.1[, c(14:117)], na.rm = T)
+  # Change date format
+  che.1$SampleDate <- as.Date(che.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(che.1$SampleDate) - min(as.Date(che.1$SampleDate)))
+  # Create individual code for each site sampled
+  site.numb <- che.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(che.1$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Create data frame
+  che.tpcb <- cbind(factor(che.1$SiteID), che.1$SampleDate,
+                    che.1$Latitude, che.1$Longitude, as.matrix(tpcb.che),
+                    data.frame(time.day), site.numb, season.s)
+  # Add column names
+  colnames(che.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
+                          "tPCB", "time", "site.code", "season")
+}
 
 # Get coordinates per site to plot in Google Earth
-che.location <- che.tpcb[c('LocationID', 'Latitude', 'Longitude', 'tPCB')]
+che.location <- che.tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 # Average tPCB per site
-che.location <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
+che.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                           data = che.location, mean)
-
-# (2) Calculate total log PCB
-# Remove metadata
-che.log <- subset(che.0, select = -c(SampleID:AroclorCongener))
-# Remove Aroclor data
-che.log <- subset(che.log, select = -c(A1016:A1260))
-# Log 10 individual PCBs 
-che.log <- log10(che.log)
-# Replace -inf to NA
-che.log <- do.call(data.frame,
-                   lapply(che.log,
-                          function(x) replace(x, is.infinite(x), NA)))
-# Sum individual log 10 PCBs
-che.log.tpcb <- rowSums(che.log, na.rm = T)
-# Generate data.frame for analysis and plots
-che.log.tpcb <- cbind(factor(che.0$LocationID), che.0$SampleDate,
-                      as.matrix(che.log.tpcb), data.frame(time.day),
-                      site.numb, season.s)
-colnames(che.log.tpcb) <- c("LocationID", "date", "logtPCB", "time",
-                            "site.code", "season")
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
-# (1.1) tPCB
 hist(che.tpcb$tPCB)
 hist(log10(che.tpcb$tPCB))
-# (1.2) log.tPCB
-hist(che.log.tpcb$logtPCB)
-hist(log10(che.log.tpcb$logtPCB))
 
 # (2) Time trend plots
-# (2.1) tPCB
 ggplot(che.tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point() +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
-
-# (2.2) log.tPCB
-ggplot(che.log.tpcb, aes(y = logtPCB,
-                         x = format(date,'%Y'))) +
-  geom_point() +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 2, y = 20, label = "Chesapeake Bay",
+           size = 3)
 
 # (3) Seasonality
-# (3.1) tPCB
 ggplot(che.tpcb, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
@@ -125,548 +101,397 @@ ggplot(che.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (3.2) log.tPCB
-ggplot(che.log.tpcb, aes(x = season, y = logtPCB)) +
-  xlab("") +
-  scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 1, y = 20, label = "Chesapeake Bay",
+           size = 3)
 
 # (4) Sites
-# From ~north to ~south
-sites <- c("SusquehannaRiverMDPABorder", "LittleElkCreekTelegraphRd",
-           "SusquehannaRiverConowingoBridge", "BigElkCreekHWY40",
-           "NorthEastRiverNEIslesDr", "ScottRunBiddlePoint",
-           "NorthEastRiverRoachsShore", "PennysShoalParkIsland",
-           "ChesapeakeAndDelawareCanalGoosePt",
-           "CranberryRunCranberryRd", "ChurchCreekPulaskiHwy",
-           "GreatBohemiaCreekOldTelegraphRd",
-           "GreatBohemiaCreekWoodstockFarmLn", "BohemiaRiverFreeSchoolPt",
-           "TurkeyPoint", "LakeRolandSunsetRock", "HenIslandCreekWilsonPt",
-           "BackRiverHWY40", "BayAtBowleyPt", "BullneckCreekMerrittPoint",
-           "HawkCovePleasureIsland", "BayAtArcadia",
-           "MagothyRiverGibsonIsland", "CorsicaRiverYellowBankStream",
-           "SevernRiverMouth", "SouthRiverMouth", "RhodeRiverCadleCreekConflux",
-           "RhodeWestConflux", "PatuxentRiverEagleHarbor", "StLeonardCreekParranRd",
-           "PatuxentRiverBarrettIsland", "PatuxentRiverMouth", "ChesapeakeBayMouth")
-
-ggplot(che.tpcb, aes(x = factor(site, levels = sites), y = tPCB)) + 
+ggplot(che.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1) +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0, color = "black") +
-  theme(legend.position = "none")
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 5, y = 20, label = "Chesapeake Bay",
+           size = 3)
 
-# (4.1) tPCB
-ggplot(che.tpcb, aes(x = factor(site), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# (4.2) log.tPCB
-ggplot(che.log.tpcb, aes(x = factor(site), y = logtPCB)) + 
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Concentration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
-
-# Regressions -------------------------------------------------------------
-# All data
-# (1) Perform linear regression (lr)
-# (1.1) tPCB vs. time
-lr.che.tpcb.t <- lm(log10(tPCB) ~ time, data = che.tpcb)
-# See results
-summary(lr.che.tpcb.t)
-# Look at residuals
-res <- resid(lr.che.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.2) log.tPCB vs. time
-lr.che.log.tpcb.t <- lm(logtPCB ~ time, data = che.log.tpcb)
-# See results
-summary(lr.che.log.tpcb.t)
-# Look at residuals
-res <- resid(lr.che.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.3) tPCB vs. season
-lr.che.tpcb.s <- lm(log10(tPCB) ~ season, data = che.tpcb)
-# See results
-summary(lr.che.tpcb.s)
-# Look at residuals
-res <- resid(lr.che.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.4) log.tPCB vs. season
-lr.che.log.tpcb.s <- lm(logtPCB ~ season, data = che.log.tpcb)
-# See results
-summary(lr.che.log.tpcb.s)
-# Look at residuals
-res <- resid(lr.che.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2) MLR
-# (2.1) tPCB vs. time + season (che.tpcb)
-mlr.che.tpcb <- lm(log10(tPCB) ~ time + season, data = che.tpcb)
-# See results
-summary(mlr.che.tpcb)
-# Look at residuals
-res <- resid(mlr.che.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.2) log.tPCB vs. time + season + flow + temp (che.log.tpcb)
-mlr.che.log.tpcb <- lm(logtPCB ~ time + season,
-                       data = che.log.tpcb)
-# See results
-summary(mlr.che.log.tpcb)
-# Look at residuals
-res <- resid(mlr.che.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + site (che.tpcb)
+# tPCB Regressions --------------------------------------------------------
+# Perform Linear Mixed-Effects Model (lme)
+# Get variables
 tpcb <- che.tpcb$tPCB
 time <- che.tpcb$time
 site <- che.tpcb$site.code
 season <- che.tpcb$season
-
-lmem.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE="ignore"))
+# tPCB vs. time + season + flow + temp + site
+lme.che.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
+                     REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.che.tpcb)
+summary(lme.che.tpcb)
 # Look at residuals
-res.che.tpcb <- resid(lmem.che.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.che.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.che.tpcb)
+{
+  res.che.tpcb <- resid(lme.che.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.che.tpcb, main = "log10(C)")
+  qqnorm(res.che.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.che.tpcb)
+}
 # Shapiro test
 shapiro.test(res.che.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+# Random effect site Std Dev
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.che.tpcb))[1,'sdcor']
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.che.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.che.tpcb))[1, 'R2c']
-
+R2.re <- as.data.frame(r.squaredGLMM(lme.che.tpcb))[1, 'R2c']
 # Extract coefficient values
-time.coeff <- summary(lmem.che.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.che.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.che.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.che.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + site (che.log.tpcb)
-log.tpcb <- che.log.tpcb$logtPCB
-time <- che.log.tpcb$time
-site <- che.log.tpcb$site.code
-season <- che.log.tpcb$season
-
-lmem.che.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + (1|site),
-                          REML = FALSE,
-                          control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                                check.nobs.vs.rankZ = "ignore",
-                                                check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.che.log.tpcb)
-# Look at residuals
-res.che.log.tpcb <- resid(lmem.che.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.che.log.tpcb, main = expression(paste("Normal Q-Q Plot", " (", Sigma,
-                                                 "log"[10]*"PCB)")))
-# Add a straight diagonal line to the plot
-qqline(res.che.log.tpcb)
-# Shapiro test
-shapiro.test(res.che.log.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res.che.log.tpcb, 'pnorm')
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.che.log.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.che.log.tpcb))[1, 'R2c']
-
-# Predictions -------------------------------------------------------------
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.che.tpcb <- as.data.frame(fitted(lmem.che.tpcb))
+fit.lme.values.che.tpcb <- as.data.frame(fitted(lme.che.tpcb))
 # Add column name
-colnames(fit.values.che.tpcb) <- c("predicted")
+colnames(fit.lme.values.che.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-che.tpcb$predicted <- 10^(fit.values.che.tpcb$predicted)
+che.tpcb$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(che.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(1, 1e6)) +
-  scale_y_log10(limits = c(1, 1e6)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(5, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(5, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 0.8) + # 1:1 line
-  geom_abline(intercept = 0.5, slope = 1, col = "blue", size = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.5, slope = 1, col = "blue", size = 0.8) + # 2:1 line (factor of 2)
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 30, y = 1000000,
-           label = 'Chesapeake Bay', colour = 'black', size = 4,
-           fontface = 2)
+  annotate('text', x = 50, y = 10^5,
+           label = expression(atop(" Chesapeake Bay (R"^2*"= 0.45)",
+                                   paste("t"[1/2]*" = 14 ± 4 (yr)"))),
+           size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
-plot(che.tpcb$predicted, res.che.tpcb)
-abline(0, 0)
+{
+  plot(log10(che.tpcb$predicted), res.che.tpcb,
+       points(log10(che.tpcb$predicted), res.che.tpcb, pch = 16, 
+              col = "#66ccff"),
+       xlim = c(2, 5),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted lme concentration ",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  abline(h = c(-1, 1), col = "grey")
+  abline(v = seq(2, 5, 0.5), col = "grey")
+  }
 
-# (2) Get predicted values log.tpcb
-fit.values.che.log.tpcb <- as.data.frame(fitted(lmem.che.log.tpcb))
-# Add column name
-colnames(fit.values.che.log.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-che.log.tpcb$predicted <- fit.values.che.log.tpcb$predicted
+# Estimate a factor of 2 between observations and predictions
+che.tpcb$factor2 <- che.tpcb$tPCB/che.tpcb$predicted
+factor2.tpcb <- nrow(che.tpcb[che.tpcb$factor2 > 0.5 & che.tpcb$factor2 < 2,
+                                ])/length(che.tpcb[,1])*100
 
-# Plot prediction vs. observations, 1:1 line
-ggplot(che.log.tpcb, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_continuous(limits = c(1, 75)) +
-  scale_y_continuous(limits = c(1, 75)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"log"[10]*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"log"[10]*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  geom_abline(intercept = 2, slope = 1, col = "blue", size = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -2, slope = 1, col = "blue", size = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotate('text', x = 25, y = 74,
-           label = expression("Chesapeake Bay (R"^2*"= 0.66)"), colour = 'black', size = 4,
-           fontface = 2)
-
-# Plot residuals vs. predictions
-plot(che.log.tpcb$predicted, res.che.log.tpcb,
-     ylim = c(-25, 25),
-     xlab = "Preditions",
-     ylab = "Residual")
-abline(0, 0)
-
-# Selected sites -------------------------------------------------------------
-# Remove predictions
-che.tpcb.1 <- che.tpcb %>% select(-predicted)
-
-# Near USGS station
-che.tpcb.1 <- che.tpcb.1[che.tpcb$site %in% c('SusquehannaRiverConowingoBridge',
-                                              'SusquehannaRiverMDPABorder',
-                                              'PennysShoalParkIsland'), ]
-
-# Include USGS flow data --------------------------------------------------
-# Include flow data from USGS station
-sitecheN1 <- "01578310" # SusquehannaRiverConowingoBridge, SusquehannaRiverMDPABorder, PennysShoalParkIsland
-sitecheN2 <- "01482800" # Site Name: Delaware River at Reedy Island Jetty, DE just for water temp
-# Codes to retrieve data
-paramflow <- "00060" # discharge, ft3/s
-paramtemp <- "00010" # water temperature, C
-# Retrieve USGS data
-flow <- readNWISdv(sitecheN1, paramflow,
-                   min(che.tpcb.1$date), max(che.tpcb.1$date))
-temp <- readNWISdv(sitecheN2, paramtemp,
-                   min(che.tpcb.1$date), max(che.tpcb.1$date))
-# Add USGS data to che.tpcb, matching dates
-che.tpcb.1$flow <- flow$X_00060_00003[match(che.tpcb.1$date, flow$Date)]
-che.tpcb.1$temp <- temp$X_00010_00003[match(che.tpcb.1$date, temp$Date)]
-# Remove samples with temp = NA
-che.tpcb.1 <- na.omit(che.tpcb.1)
-
-# Add USGS data to che.log.tpcb, matching dates
-che.log.tpcb.1$flow <- flow$X_.Primary.Stream.Flow._00060_00003[match(che.log.tpcb.1$date,
-                                                                      flow$Date)]
-che.log.tpcb.1$temp <- temp$X_00010_00003[match(che.log.tpcb.1$date, temp$Date)]
-# Remove samples with temp = NA
-che.log.tpcb.2 <- na.omit(che.log.tpcb.2)
-
+# Plot time series with lme predictions
+# Create a data frame to storage data
+{
+  time.serie.tpcb <- as.data.frame(matrix(nrow = length(che.tpcb[,1]),
+                                          ncol = 3))
+  # Add name to columns
+  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'lmetPCB')
+  # Add data
+  time.serie.tpcb$date <- che.tpcb$date
+  time.serie.tpcb$tPCB <- che.tpcb$tPCB
+  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.che.tpcb)
+  # Change again the names
+  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
+  # Change data.frame format to be plotted
+  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
+}
 # Plot
-ggplot(che.tpcb.1, aes(y = tPCB,
-                       x = format(date,'%Y%m'))) +
-  geom_point() +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
+  geom_point(aes(shape = variable, color = variable, size = variable,
+                 fill = variable)) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
+  scale_size_manual(values = c(2, 1)) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
+  scale_x_date(labels = date_format("%Y-%m")) +
+  scale_y_log10(limits = c(1, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
+  xlab("") +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1,
-                                   color = "black"))
-
-ggplot(che.tpcb.1, aes(x = factor(site), y = tPCB)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold("Water Conncetration " *Sigma*"PCB 2012 - 2018 (pg/L)"))) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 1, col = "#66ccff") +
-  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotation_logticks(sides = "l",
+                      short = unit(0.5, "mm"),
+                      mid = unit(1.5, "mm"),
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2004-05-01", format = "%Y-%m-%d"),
+           y = 10, label = "Chesapeake Bay", size = 3)
 
-# Regression with selected sites
-# (1.1) tPCB vs. flow (che.tpcb.1)
-lr.che.tpcb.1.f <- lm(log10(tPCB) ~ flow, data = che.tpcb.1)
+# Individual PCB Analysis -------------------------------------------------
+# Prepare data.frame
+{
+  che.pcb <- subset(che.1, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  che.pcb <- subset(che.pcb, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  che.pcb <- log10(che.pcb)
+  # Replace -inf to NA
+  che.pcb <- do.call(data.frame,
+                     lapply(che.pcb,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Remove individual PCB that have 30% or less NA values
+  che.pcb.1 <- che.pcb[,
+                       -which(colSums(is.na(che.pcb))/nrow(che.pcb) > 0.7)]
+  # Add site ID
+  che.pcb.1$SiteID <- che.1$SiteID
+  # Change date format
+  che.pcb.1$SampleDate <- as.Date(che.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  che.pcb.1$time <- as.Date(che.1$SampleDate) - min(as.Date(che.1$SampleDate))
+  # Create individual code for each site sampled
+  che.pcb.1$site.numb <- che.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  che.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Remove metadata
+  che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:season))
+}
+
+# LME for individual PCBs -------------------------------------------------
+# Get covariates
+time <- che.pcb.1$time
+season <- che.pcb.1$season
+site <- che.pcb.1$site.numb
+
+# Create matrix to store results
+lme.pcb <- matrix(nrow = length(che.pcb.2[1,]), ncol = 21)
+
+# Perform LME
+for (i in 1:length(che.pcb.2[1,])) {
+  fit <- lmer(che.pcb.2[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb[i,1] <- fixef(fit)[1] # intercept
+  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
+  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.pcb[i,4] <- fixef(fit)[2] # time
+  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
+  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.pcb[i,7] <- fixef(fit)[3] # # season 1
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # # season 1 p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # season 2
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 3
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+}
+
+# Just 3 significant figures
+lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Add congener names
+congeners <- colnames(che.pcb.2)
+lme.pcb <- cbind(congeners, lme.pcb)
+# Add column names
+colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "season1", "season1.error", "season1.pv", "season2",
+                       "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.pcb, file = "Output/Data/csv/LmeChePCB.csv")
+
+# Generate predictions
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(che.pcb.2[,1]),
+                      ncol = length(che.pcb.2[1,]))
+
+for (i in 1:length(che.pcb.2[1,])) {
+  fit <- lmer(che.pcb.2[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  lme.fit.pcb[,i] <- fitted(fit)
+}
+
+# Estimate a factor of 2 between observations and predictions
+factor2 <- 10^(che.pcb.2)/10^(lme.fit.pcb)
+factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
+                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Selected individual PCB regression --------------------------------------
+# lme
+lme.che.pcbi <- lmer(che.pcb.2$PCB56.60 ~ 1 + time + season +
+                       (1|site), REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"),
+                     na.action = na.exclude)
+
 # See results
-summary(lr.che.tpcb.1.f)
+summary(lme.che.pcbi)
 # Look at residuals
-res <- resid(lr.che.tpcb.1.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
+{
+  res.lme.che.pcbi <- resid(lme.che.pcbi) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.lme.che.pcbi, main = expression(paste("Normal Q-Q Plot PCBs 56+60")))
+  # Add a straight diagonal line to the plot
+  qqline(res.lme.che.pcbi)
+}
 # Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.2) log.tPCB vs. flow (che.log.tpcb.2)
-lr.che.log.tpcb.1.f <- lm(logtPCB ~ flow, data = che.log.tpcb.1)
-# See results
-summary(lr.che.log.tpcb.1.f)
-# Look at residuals
-res <- resid(lr.che.log.tpcb.1.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.3) tPCB vs. water temperature (che.tpcb.2)
-lr.che.tpcb.1.te <- lm(log10(tPCB) ~ temp, data = che.tpcb.1)
-# See results
-summary(lr.che.tpcb.1.te)
-# Look at residuals
-res <- resid(lr.che.tpcb.1.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.4) log.tPCB vs. temperature (che.log.tpcb.1)
-lr.che.log.tpcb.1.te <- lm(logtPCB ~ temp, data = che.log.tpcb.1)
-# See results
-summary(lr.che.log.tpcb.1.te)
-# Look at residuals
-res <- resid(lr.che.log.tpcb.1.te) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2) MLR with selected sites
-# (2.1) tPCB vs. time + season (che.tpcb)
-mlr.che.tpcb.1 <- lm(log10(tPCB) ~ time + season + flow + temp, data = che.tpcb.1)
-# See results
-summary(mlr.che.tpcb.1)
-# Look at residuals
-res <- resid(mlr.che.tpcb.1) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (3) Perform Linear Mixed-Effects Model (LMEM) with selected sites
-# (3.1) tPCB vs. time + season + flow + temp + site (che.tpcb.1)
-tpcb <- che.tpcb.1$tPCB
-time <- che.tpcb.1$time
-site <- che.tpcb.1$site.code
-season <- che.tpcb.1$season
-flow <- che.tpcb.1$flow
-tem <- che.tpcb.1$temp
-
-lmem.che.tpcb.1 <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
-                        REML = FALSE,
-                        control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                              check.nobs.vs.rankZ = "ignore",
-                                              check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.che.tpcb.1)
-# Look at residuals
-res.che.tpcb.1 <- resid(lmem.che.tpcb.1) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.che.tpcb.1, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.che.tpcb.1)
-# Shapiro test
-shapiro.test(res.che.tpcb.1)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+shapiro.test(res.lme.che.pcbi)
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.che.tpcb.1))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.che.pcbi))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.che.tpcb.1))[1, 'R2c']
+R2.re <- as.data.frame(r.squaredGLMM(lme.che.pcbi))[1, 'R2c']
+# Extract coefficient values
+time.coeff <- summary(lme.che.pcbi)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.che.pcbi)$coef[2, "Std. Error"]
+# Calculate half-life tPCB in yr (-log(2)/slope/365)
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
+# Calculate error
+t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
+
+# (1) Get predicted values pcbi
+date.pcbi <- format(che.pcb.1$SampleDate, "%Y-%m-%d")
+obs <- che.pcb.2$PCB56.60
+che.pcbi <- cbind(date.pcbi, obs)
+fit.lme.values.pcbi <- as.data.frame(fitted(lme.che.pcbi))
+che.pcbi <- cbind(che.pcbi, fit.lme.values.pcbi)
+colnames(che.pcbi) <- c("date", "obs", 'lme')
+che.pcbi$date <- as.Date(che.pcbi$date)
+che.pcbi$obs <- as.numeric(che.pcbi$obs)
+
+# Plot residuals vs. predictions
+{
+  plot(che.pcbi$lme, res.lme.che.pcbi,
+       points(che.pcbi$lme, res.lme.che.pcbi, pch = 16, 
+              col = "#66ccff"),
+       xlim = c(0, 4),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted concentration PCBs 56+60 (pg/L)")),
+       ylab = "Residual (lme)")
+  abline(0, 0)
+  abline(h = seq(-2, 2, 1), col = "grey")
+  abline(v = seq(0, 4, 0.5), col = "grey")
+}
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.che.tpcb.1 <- as.data.frame(fitted(lmem.che.tpcb.1))
+fit.lme.values.che.pcbi <- as.data.frame(fitted(lme.che.pcbi))
 # Add column name
-colnames(fit.values.che.tpcb.1) <- c("predicted")
+colnames(fit.lme.values.che.pcbi) <- c("predicted")
 # Add predicted values to data.frame
-che.tpcb.1$predicted <- 10^(fit.values.che.tpcb.1$predicted)
+che.pcb.2$predicted <- 10^(fit.lme.values.che.pcbi$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+ggplot(che.pcb.2, aes(x = 10^(PCB56.60), y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(0.1, 100000), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(0.1, 100000), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
+  xlab(expression(bold("Observed concentration PCBs 56+60 (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration PCBs 56+60 (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 5, y = 10^4.5,
+           label = expression(atop("Chesapeake Bay (R"^2*" = 0.73)",
+                                   paste("t"[1/2]*" = 0 ± 5.7x10"^-0.5*" (yr)"))),
+           size = 3, fontface = 2)
 
-ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(1, 1e6)) +
-  scale_y_log10(limits = c(1, 1e6)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+# Modeling plots
+# Change data.frame format to be plotted
+che.pcbi.2 <- melt(che.pcbi, id.vars = c("date"))
+# Plot
+ggplot(che.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
+  geom_point(aes(shape = variable, color = variable, size = variable,
+                 fill = variable)) +
+  scale_shape_manual(values = c(21, 3)) +
+  scale_color_manual(values = c('black','#8856a7')) +
+  scale_size_manual(values = c(2, 1)) +
+  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
+  scale_x_date(labels = date_format("%Y-%m")) +
+  scale_y_log10(limits = c(0.1, 100000)) +
+  xlab("") +
   theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 100, y = 1000000,
-           label = 'Chesapeake Bay', colour = 'black', size = 4,
-           fontface = 2)
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concetration",
+                            paste("PCB 17 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  annotation_logticks(sides = "l",
+                      short = unit(0.5, "mm"),
+                      mid = unit(1.5, "mm"),
+                      long = unit(2, "mm")) +
+  annotate("text", x = as.Date("2004-06-01", format = "%Y-%m-%d"),
+           y = 1, label = "Chesapeake Bay", size = 3)
+
