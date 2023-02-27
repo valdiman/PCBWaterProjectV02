@@ -85,7 +85,7 @@ ggplot(hou.tpcb, aes(y = tPCB,
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
@@ -103,7 +103,7 @@ ggplot(hou.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -126,7 +126,7 @@ ggplot(hou.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -163,7 +163,7 @@ ggplot(hou.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 }
 
 # tPCB Regressions --------------------------------------------------------
-# (1.3) Perform Linear Mixed-Effects Model (Lme)
+# Perform Linear Mixed-Effects Model (lme)
 # Get variables
 tpcb <- hou.tpcb$tPCB
 time <- hou.tpcb$time
@@ -193,68 +193,9 @@ summary(lme.hou.tpcb)
 }
 # Shapiro test
 shapiro.test(res.hou.tpcb)
-# Lme does not provide a good model. Not more to do here. 
+# Lme does not provide a good model. Not more to do here.
 
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lme.hou.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lme.hou.tpcb))[1, 'R2c']
-
-# Extract coefficient values
-time.coeff <- summary(lme.hou.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lme.hou.tpcb)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.hou.tpcb <- as.data.frame(fitted(lme.hou.tpcb))
-# Add column name
-colnames(fit.lme.values.hou.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-hou.tpcb$predicted <- 10^(fit.lme.values.hou.tpcb$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 10, y = 10^4,
-           label = expression("Housotonic River (R"^2*"= 0.34)"),
-           size = 3, fontface = 2)
-
-# Plot residuals vs. predictions
-{
-  plot(log10(hou.tpcb$predicted), res.hou.tpcb,
-       points(log10(hou.tpcb$predicted), res.hou.tpcb, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(1, 3.5, 0.2), col = "grey")
-  }
-
-# Estimate a factor of 2 between observations and predictions
-hou.tpcb$factor2 <- hou.tpcb$tPCB/hou.tpcb$predicted
-factor2.tpcb <- nrow(hou.tpcb[hou.tpcb$factor2 > 0.5 & hou.tpcb$factor2 < 2,
-                                ])/length(hou.tpcb[,1])*100
-
-# (2) Selected sites ----------------------------------------------------------
+# Selected sites ----------------------------------------------------------
 ## Due to many dredging operations and issues with data
 ## only sites close to USGS station were selected for regression
 ## analysis
@@ -272,7 +213,7 @@ ggplot(hou.tpcb.20, aes(y = tPCB,
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
@@ -291,7 +232,7 @@ ggplot(hou.tpcb.8, aes(y = tPCB,
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
@@ -304,7 +245,7 @@ ggplot(hou.tpcb.8, aes(y = tPCB,
 # tPCB Regressions --------------------------------------------------------
 # MLR tPCB vs. time + season + flow
 mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
-                   data = hou.tpcb.8)
+                   data = hou.tpcb.20)
 # See results
 summary(mlr.hou.tpcb)
 # Look at residuals
@@ -322,30 +263,3 @@ summary(mlr.hou.tpcb)
 # Shapiro test
 shapiro.test(res.hou.tpcb)
 # Lme does predict a good model.
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.mlr.values.hou.tpcb <- as.data.frame(fitted(mlr.hou.tpcb))
-# Add column name
-colnames(fit.mlr.values.hou.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-hou.tpcb.8$predicted <- 10^(fit.mlr.values.hou.tpcb$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb.8, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(1, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^3,
-           label = expression("Housotonic River (R"^2*"= 0.78)"),
-           size = 3, fontface = 2)
