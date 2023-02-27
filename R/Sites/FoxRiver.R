@@ -85,7 +85,7 @@ ggplot(fox.tpcb, aes(y = tPCB,
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
@@ -103,7 +103,7 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -126,7 +126,7 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -373,7 +373,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
                       mid = unit(1.5, "mm"),
                       long = unit(2, "mm")) +
   annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 10^3.8, label = "Fox River", size = 3.5)
+           y = 10^3.8, label = "Fox River", size = 3)
 
 # Individual PCB Analysis -------------------------------------------------
 # Use fox.1 (no 0s samples)
@@ -588,7 +588,7 @@ ggplot(fox.pcb.3, aes(x = 10^(PCB17), y = predicted)) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 0.7, y = 10^2.8,
            label = expression(atop("Fox River (R"^2*"= 0.81)",
-                                   paste("t"[1/2]*" = 14 ± 3"))),
+                                   paste("t"[1/2]*" = 14 ± 3 (yr)"))),
            size = 3, fontface = 2)
 
 # Modeling plots
@@ -619,5 +619,5 @@ ggplot(fox.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
                       mid = unit(1.5, "mm"),
                       long = unit(2, "mm")) +
   annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 850, label = "Fox River", size = 3.5)
+           y = 850, label = "Fox River", size = 3)
 
