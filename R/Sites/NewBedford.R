@@ -10,7 +10,7 @@
 ## in the upper and lower harbor. This cleanup took place
 ## from 1994 to 1995 and the off-site disposal of the
 ## resulting highly contaminated material was completed in 2000.
-# More info:
+## More info:
 ## https://19january2021snapshot.epa.gov/new-bedford-harbor/general-information-about-new-bedford-harbor-cleanup_.html
 ## https://semspub.epa.gov/work/01/100013466.pdf
 
@@ -114,7 +114,7 @@ ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -137,7 +137,7 @@ ggplot(nbh.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -221,7 +221,8 @@ ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 500, y = 10^5.8,
-           label = expression("New Bedford Harbord (R"^2*"= 0.80)"),
+           label = expression(atop("New Bedford Harbord (R"^2*"= 0.80)",
+                                   paste("t"[1/2]*" = -3.3 ± 0.3 (yr)"))),
            size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
@@ -243,52 +244,6 @@ nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
 factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
                               ])/length(nbh.tpcb[,1])*100
 
-# Plot time series with lme predictions
-# Create a data frame to storage data
-{
-  time.serie.tpcb <- as.data.frame(matrix(nrow = length(nbh.tpcb[,1]),
-                                          ncol = 3))
-  # Add name to columns
-  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'lmetPCB')
-  # Add data
-  time.serie.tpcb$date <- nbh.tpcb$date
-  time.serie.tpcb$tPCB <- nbh.tpcb$tPCB
-  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.nbh.tpcb)
-  # Change again the names
-  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
-  # Change data.frame format to be plotted
-  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
-}
-# Plot
-ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y")) +
-  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  #scale_y_log10(limits = c(10, 10000)) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2012-06-01", format = "%Y-%m-%d"),
-           y = 10^5.5, label = "New Bedford Harbor",
-           size = 3)
-
 # Individual PCB Analysis -------------------------------------------------
 # Use nbh.1 (no 0s samples)
 # Prepare data.frame
@@ -304,7 +259,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
   nbh.pcb.1 <- nbh.pcb[,
-                       -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.7)]
+                       -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.1)]
   # Add site ID
   nbh.pcb.1$SiteID <- nbh.1$SiteID
   # Change date format
@@ -330,6 +285,15 @@ site <- nbh.pcb.1$site.numb
 lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 21)
 
 # Perform LME
+
+fit <- lmer(nbh.pcb.2$PCB44.47.65 ~ 1 + time + season + (1|site),
+            REML = FALSE,
+            control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"))
+
+summary(fit)
+
 for (i in 1:length(nbh.pcb.2[1,])) {
   fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
