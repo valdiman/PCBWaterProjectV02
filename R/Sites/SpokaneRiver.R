@@ -1,5 +1,5 @@
 ## Water PCB concentrations data analysis per site
-# Spokane River
+## Spokane River
 
 # Install packages
 install.packages("tidyverse")
@@ -70,7 +70,6 @@ spo.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
 
 # General plots -------------------------------------------------------------------
 # (1) Histograms
-# (1.1) tPCB
 hist(spo.tpcb$tPCB)
 hist(log10(spo.tpcb$tPCB))
 
@@ -83,14 +82,14 @@ ggplot(spo.tpcb, aes(y = tPCB,
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 10)) +
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 5, y = 10^4.2, label = "Spokane River",
+  annotate("text", x = 4.5, y = 10^4.2, label = "Spokane River",
            size = 3)
 
 # (3) Seasonality
@@ -101,7 +100,7 @@ ggplot(spo.tpcb, aes(x = season, y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -118,13 +117,13 @@ ggplot(spo.tpcb, aes(x = season, y = tPCB)) +
            size = 3)
 
 # (4) Sites
-ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(spo.tpcb, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
   xlab(expression("")) +
   theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concetration",
+  ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
@@ -137,7 +136,7 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 7.8, y = 10^5, label = "Fox River",
+  annotate("text", x = 2.5, y = 10^4.2, label = "Spokane River",
            size = 3)
 
 # Include USGS flow data --------------------------------------------------
@@ -146,9 +145,10 @@ siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
 siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
 siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
 siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
+siteSpoN5 <- "12422000"
 # Codes to retrieve data
 paramflow <- "00060" # discharge, ft3/s
-# paramtemp <- "00010" # water temperature, C No data
+#paramtemp <- "00010" # water temperature, C No data
 # Retrieve USGS data
 flow.1 <- readNWISdv(siteSpoN1, paramflow,
                      min(spo.tpcb$date), max(spo.tpcb$date))
@@ -169,309 +169,154 @@ spo.tpcb$flow.3 <- 0.03*flow.3$X_00060_00003[match(spo.tpcb$date,
 spo.tpcb$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.tpcb$date,
                                               flow.4$Date)]
 
-# Add USGS data to spo.log.tpcb, matching dates
-spo.log.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(spo.log.tpcb$date,
-                                                  flow.1$Date)]
-spo.log.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(spo.log.tpcb$date,
-                                                  flow.2$Date)]
-spo.log.tpcb$flow.3 <- 0.03*flow.3$X_00060_00003[match(spo.log.tpcb$date,
-                                                  flow.3$Date)]
-spo.log.tpcb$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.log.tpcb$date,
-                                                  flow.4$Date)]
-
 # Remove site -------------------------------------------------------------
-# Coeurd'AleneWWTP
-# PostFallsWWTP
-# LibertyLakeSewer
-# KaiserAluminum
-spo.tpcb.2 <- subset(spo.tpcb, locationID != c("WCPCB-SPR002")) #Coeur d'Alene WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, locationID != c("WCPCB-SPR011")) #Post Falls WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, locationID != c("WCPCB-SPR008")) #Liberty Lake Sewer
-spo.tpcb.2 <- subset(spo.tpcb.2, locationID != c("WCPCB-SPR006")) #Kaiser Aluminum
+## Sample sites not located in the Spokane River
+## Coeur d'Alene WWTP, Post Falls WWTP, Liberty Lake, Kaiser Aluminum
+spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) #Coeur d'Alene WWTP
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Inland Empire Paper
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Kaiser Aluminum
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) #Liberty Lake
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR0012")) # Regional WRF
+
+# (1) Histograms
+hist(spo.tpcb.2$tPCB)
+hist(log10(spo.tpcb.2$tPCB))
+
+# (2) Time trend plots
+ggplot(spo.tpcb.2, aes(y = tPCB,
+                     x = format(date,'%Y-%m'))) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  xlab("") +
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  theme(aspect.ratio = 5/15) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 10)) +
+  theme(axis.text.x = element_text(face = "bold", size = 9,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9)) +
+  annotate("text", x = 4.5, y = 10^4.2, label = "Spokane River",
+           size = 3)
+
+# (3) Sites
+ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 5/20) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
+  annotate("text", x = 2.5, y = 10^4.2, label = "Spokane River",
+           size = 3)
 
 # Select sites
-spo.tpcb.PF <- subset(spo.tpcb, locationID == "WCPCB-SPR010") # flow.2 PostFalls
-spo.tpcb.WRF <- subset(spo.tpcb, locationID == "WCPCB-SPR013") # flow.3 Spokane WRF
+spo.tpcb.PF <- subset(spo.tpcb, SiteID == "WCPCB-SPR010") # flow.2 PostFalls
+spo.tpcb.WRF <- subset(spo.tpcb, SiteID == "WCPCB-SPR013") # flow.3 Spokane WRF
 
-# Regressions -------------------------------------------------------------
-# (1) Perform linear regression (lr)
-# (1.1) tPCB vs. time
-lr.spo.tpcb.t <- lm(log10(tPCB) ~ time, data = spo.tpcb)
-# See results
-summary(lr.spo.tpcb.t)
-# Look at residuals
-res <- resid(lr.spo.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.2) log.tPCB vs. time
-lr.spo.log.tpcb.t <- lm(logtPCB ~ time, data = spo.log.tpcb)
-# See results
-summary(lr.spo.log.tpcb.t)
-# Look at residuals
-res <- resid(lr.spo.log.tpcb.t) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.3) tPCB vs. season
-lr.spo.tpcb.s <- lm(log10(tPCB) ~ season, data = spo.tpcb)
-# See results
-summary(lr.spo.tpcb.s)
-# Look at residuals
-res <- resid(lr.spo.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.4) log.tPCB vs. season
-lr.spo.log.tpcb.s <- lm(logtPCB ~ season, data = spo.log.tpcb)
-# See results
-summary(lr.spo.log.tpcb.s)
-# Look at residuals
-res <- resid(lr.spo.log.tpcb.s) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.5) tPCB vs. flow
-lr.spo.tpcb.f <- lm(log10(tPCB) ~ flow.3, data = spo.tpcb)
-# See results
-summary(lr.spo.tpcb.f)
-# Look at residuals
-res <- resid(lr.spo.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (1.6) log.tPCB vs. flow
-lr.spo.log.tpcb.f <- lm(logtPCB ~ flow.4, data = spo.log.tpcb)
-# See results
-summary(lr.spo.log.tpcb.f)
-# Look at residuals
-res <- resid(lr.spo.log.tpcb.f) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2) MLR
-# (2.1) tPCB vs. time + season + flow
-mlr.spo.tpcb <- lm(log10(tPCB) ~ time + season + flow.1,
-                   data = spo.tpcb)
-# See results
-summary(mlr.spo.tpcb)
-# Look at residuals
-res <- resid(mlr.spo.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (2.2) log.tPCB vs. time + season + flow
-mlr.spo.log.tpcb <- lm(logtPCB ~ time + season + flow.1,
-                       data = spo.log.tpcb)
-# See results
-summary(mlr.spo.log.tpcb)
-# Look at residuals
-res <- resid(mlr.spo.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res)
-# Add a straight diagonal line to the plot
-qqline(res)
-# Shapiro test
-shapiro.test(res)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
-
-# (3) Perform Linear Mixed-Effects Model (LMEM)
-# (3.1) tPCB vs. time + season + flow + site
+# tPCB Regressions --------------------------------------------------------
+# Perform Linear Mixed-Effects Model (lme)
+# Get variables
 tpcb <- spo.tpcb.2$tPCB
 time <- spo.tpcb.2$time
 site <- spo.tpcb.2$site.code
 season <- spo.tpcb.2$season
-flow <- spo.tpcb.2$flow.1
-
-lmem.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
-                  REML = FALSE,
-                  control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                        check.nobs.vs.rankZ = "ignore",
-                                        check.nobs.vs.nRE="ignore"))
+flow <- spo.tpcb.2$flow.4
+# tPCB vs. time + season + flow + temp + site
+lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
+                     REML = FALSE,
+                     control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                           check.nobs.vs.rankZ = "ignore",
+                                           check.nobs.vs.nRE="ignore"))
 
 # See results
-summary(lmem.spo.tpcb)
+summary(lme.spo.tpcb)
 # Look at residuals
-res.spo.tpcb <- resid(lmem.spo.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.spo.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.spo.tpcb)
+{
+  res.spo.tpcb <- resid(lme.spo.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.spo.tpcb, main = "log10(C)")
+  qqnorm(res.spo.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.spo.tpcb)
+}
 # Shapiro test
 shapiro.test(res.spo.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
+# Random effect site Std Dev
+RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.spo.tpcb))[1,'sdcor']
 # Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.spo.tpcb))[1, 'R2m']
+R2.nre <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2m']
 # Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.spo.tpcb))[1, 'R2c']
-
+R2.re <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2c']
 # Extract coefficient values
-time.coeff <- summary(lmem.spo.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.spo.tpcb)$coef[2, "Std. Error"]
+time.coeff <- summary(lme.spo.tpcb)$coef[2, "Estimate"]
+time.coeff.ste <- summary(lme.spo.tpcb)$coef[2, "Std. Error"]
 # Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
+t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
-# (3.2) log.tPCB vs. time + season + flow + temp + site (spo.log.tpcb.2)
-log.tpcb <- spo.log.tpcb.2$logtPCB
-time <- spo.log.tpcb.2$time
-site <- spo.log.tpcb.2$site.code
-season <- spo.log.tpcb.2$season
-flow <- spo.log.tpcb.2$flow
-tem <- spo.log.tpcb.2$temp
-
-lmem.spo.log.tpcb <- lmer(log.tpcb ~ 1 + time + season + season + flow + tem + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.spo.log.tpcb)
-# Look at residuals
-res.spo.log.tpcb <- resid(lmem.spo.log.tpcb) # get list of residuals
-# Create Q-Q plot for residuals
-qqnorm(res.spo.log.tpcb, main = "log10(C)")
-# Add a straight diagonal line to the plot
-qqline(res.spo.log.tpcb)
-# Shapiro test
-shapiro.test(res.spo.log.tpcb)
-# One-sample Kolmogorov-Smirnov test
-ks.test(res.spo.log.tpcb, 'pnorm')
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.spo.log.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.spo.log.tpcb))[1, 'R2c']
-
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.values.spo.tpcb <- as.data.frame(fitted(lmem.spo.tpcb))
+fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 # Add column name
-colnames(fit.values.spo.tpcb) <- c("predicted")
+colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-spo.tpcb.2$predicted <- 10^(fit.values.spo.tpcb$predicted)
+spo.tpcb$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
+ggplot(spo.tpcb, aes(x = tPCB, y = predicted.1)) +
+  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(10, 1e5)) +
-  scale_y_log10(limits = c(10, 1e5)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 40, y = 10000,
-           label = 'Spokane River', colour = 'black', size = 4,
-           fontface = 2)
+  annotate('text', x = 50, y = 10^4.3,
+           label = expression(atop("Spokane River (R"^2*"= 0.65)",
+                                   paste("t"[1/2]*" = 11 ± 2 (yr)"))),
+           size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
-plot(log10(spo.tpcb.2$predicted), res.spo.tpcb)
-abline(0, 0)
+{
+  plot(log10(spo.tpcb$predicted), res.spo.tpcb,
+       points(log10(spo.tpcb$predicted.1), res.spo.tpcb, pch = 16, 
+              col = "#66ccff"),
+       xlim = c(1.5, 4),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted lme concentration ",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  abline(0, 0)
+  abline(h = c(-1, 1), col = "grey")
+  abline(v = seq(1.5, 4, 0.5), col = "grey")
+  }
 
-# (2) Get predicted values log.tpcb
-fit.values.spo.log.tpcb <- as.data.frame(fitted(lmem.spo.log.tpcb))
-# Add column name
-colnames(fit.values.spo.log.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-spo.log.tpcb.2$predicted <- fit.values.spo.log.tpcb$predicted
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(spo.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "bl") +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3)
-
-ggplot(spo.log.tpcb.2, aes(x = logtPCB, y = predicted)) +
-  geom_point() +
-  scale_x_log10(limits = c(5, 1e2)) +
-  scale_y_log10(limits = c(5, 1e2)) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", size = 1.3) +
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl")
-
-# Plot residuals vs. predictions
-plot(spo.log.tpcb.2$predicted, res.spo.log.tpcb)
-abline(0, 0)
+# Estimate a factor of 2 between observations and predictions
+spo.tpcb$factor2 <- spo.tpcb$tPCB/spo.tpcb$predicted.1
+factor2.tpcb <- nrow(spo.tpcb[spo.tpcb$factor2 > 0.5 & spo.tpcb$factor2 < 2,
+                                ])/length(spo.tpcb[,1])*100
