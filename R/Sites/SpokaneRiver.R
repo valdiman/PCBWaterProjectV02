@@ -171,13 +171,14 @@ spo.tpcb$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.tpcb$date,
 
 # Remove site -------------------------------------------------------------
 ## Sample sites not located in the Spokane River
-## Coeur d'Alene WWTP, Post Falls WWTP, Liberty Lake, Kaiser Aluminum
-spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) #Coeur d'Alene WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Inland Empire Paper
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Kaiser Aluminum
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) #Liberty Lake
+spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Regional WRF
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
 spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR0012")) # Regional WRF
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
+spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR015")) # Hagman Creek
 
 # (1) Histograms
 hist(spo.tpcb.2$tPCB)
@@ -199,7 +200,7 @@ ggplot(spo.tpcb.2, aes(y = tPCB,
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 4.5, y = 10^4.2, label = "Spokane River",
+  annotate("text", x = 4, y = 10^3, label = "Spokane River",
            size = 3)
 
 # (3) Sites
@@ -222,12 +223,8 @@ ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
-  annotate("text", x = 2.5, y = 10^4.2, label = "Spokane River",
+  annotate("text", x = 6, y = 10^3, label = "Spokane River",
            size = 3)
-
-# Select sites
-spo.tpcb.PF <- subset(spo.tpcb, SiteID == "WCPCB-SPR010") # flow.2 PostFalls
-spo.tpcb.WRF <- subset(spo.tpcb, SiteID == "WCPCB-SPR013") # flow.3 Spokane WRF
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
@@ -279,14 +276,14 @@ fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 # Add column name
 colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-spo.tpcb$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
+spo.tpcb.2$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(spo.tpcb, aes(x = tPCB, y = predicted.1)) +
+ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
@@ -296,27 +293,29 @@ ggplot(spo.tpcb, aes(x = tPCB, y = predicted.1)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^4.3,
-           label = expression(atop("Spokane River (R"^2*"= 0.65)",
-                                   paste("t"[1/2]*" = 11 ± 2 (yr)"))),
+  annotate('text', x = 50, y = 10^3.2,
+           label = expression(atop("Spokane River (R"^2*"= 0.58)",
+                                   paste(""))),
            size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
 {
-  plot(log10(spo.tpcb$predicted), res.spo.tpcb,
-       points(log10(spo.tpcb$predicted.1), res.spo.tpcb, pch = 16, 
+  plot(log10(spo.tpcb.2$predicted.1), res.spo.tpcb,
+       points(log10(spo.tpcb.2$predicted.1), res.spo.tpcb, pch = 16, 
               col = "#66ccff"),
-       xlim = c(1.5, 4),
+       xlim = c(1.5, 3),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(1.5, 4, 0.5), col = "grey")
+  abline(v = seq(1.5, 3, 0.5), col = "grey")
   }
 
 # Estimate a factor of 2 between observations and predictions
-spo.tpcb$factor2 <- spo.tpcb$tPCB/spo.tpcb$predicted.1
-factor2.tpcb <- nrow(spo.tpcb[spo.tpcb$factor2 > 0.5 & spo.tpcb$factor2 < 2,
-                                ])/length(spo.tpcb[,1])*100
+spo.tpcb.2$factor2 <- spo.tpcb.2$tPCB/spo.tpcb.2$predicted.1
+factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 2,
+                                ])/length(spo.tpcb.2[,1])*100
+
+
