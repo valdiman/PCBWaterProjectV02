@@ -37,25 +37,23 @@ install.packages("reshape")
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Data preparation --------------------------------------------------------
-# (1) All data, including 0s
+# # Only consider congener data 
 {
+  cong <- subset(wdc, AroclorCongener == "Congener")
+  # Remove samples with only 0s
+  cong <- cong[!(rowSums(cong[, c(14:117)], na.rm = TRUE)==0), ]
   # Remove metadata
-  wdc.1 <- subset(wdc, select = -c(SampleID:AroclorCongener))
+  cong.1 <- subset(cong, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  wdc.1 <- subset(wdc.1, select = -c(A1016:A1260))
-  # (2) Only consider congener data
-  wdc.cong <- subset(wdc, AroclorCongener == "Congener")
-  # Remove metadata
-  wdc.cong <- subset(wdc.cong, select = -c(SampleID:AroclorCongener))
-  # Remove Aroclor data
-  wdc.cong <- subset(wdc.cong, select = -c(A1016:A1260))
+  cong.1 <- subset(cong.1, select = -c(A1016:A1260))
 }
 
 # Create PCB profile distribution
-# Generate PCB profile for individual samples
 {
-  tmp <- rowSums(wdc.cong, na.rm = TRUE)
-  prof <- sweep(wdc.cong, 1, tmp, FUN = "/")
+  # Generate PCB profile for individual samples
+  tmp <- rowSums(cong.1, na.rm = TRUE)
+  prof <- sweep(cong.1, 1, tmp, FUN = "/")
+  # Generate average PCB profile
   prof.ave <- data.frame(colMeans(prof, na.rm = TRUE))
   colnames(prof.ave) <- c("mean")
   prof.sd <- data.frame(apply(prof, 2, sd, na.rm = TRUE))
@@ -71,8 +69,6 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
   prof.ave$congener <- factor(prof.ave$congener,
                               levels = unique(prof.ave$congener))
 }
-
-
 
 # Plot average PCB profile
 ggplot(prof.ave, aes(x = congener, y = mean)) +
@@ -105,8 +101,20 @@ ggplot(prof.ave, aes(x = congener, y = mean)) +
   annotate("text", x = 70.5, y = 0.33, label = "PCBs 132+153+\n161+168",
            size = 2, fontface = 1, angle = 90)
 
+# Prepare data for PCA
+t.prof <- data.frame(t(prof))
+
+# Add column names with samples name
+colnames(t.prof) <- cong$SiteID
+t.prof <- t(t.prof)
+
+is.na(t.prof)
+is.infinite(t.prof)
 
 
+# Perform PCA all samples
+PCA <- prcomp(t.prof, na.action = na.pass)
+summary(PCA)
 
 # Add Aroclor data
 
