@@ -101,15 +101,12 @@ ggplot(prof.ave, aes(x = congener, y = mean)) +
   annotate("text", x = 70.5, y = 0.33, label = "PCBs 132+153+\n161+168",
            size = 2, fontface = 1, angle = 90)
 
+# PCB congener analysis ---------------------------------------------------
 # Prepare data for PCA
+
 t.prof <- data.frame(t(prof))
-
 # Add column names with samples name
-colnames(t.prof) <- cong$SiteID
-t.prof <- t(t.prof)
-
-is.na(t.prof)
-is.infinite(t.prof)
+colnames(t.prof) <- cong$SampleID
 
 
 # Perform PCA all samples
