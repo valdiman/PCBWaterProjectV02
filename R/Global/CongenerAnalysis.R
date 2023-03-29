@@ -100,6 +100,15 @@ fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21,
              addEllipses = TRUE, label = "var",
              col.var = "black", repel = TRUE)
 
+# Remove samples with less than x% of congeners
+prof <- cbind(cong$SampleID, prof)
+
+prop_non_na <- rowMeans(!is.na(prof))
+
+# subset data frame to rows with >= 50% non-NA values
+prof.2 <- prof[prop_non_na >= 0.8, ]
+
+
 # Just looking at samples with Method 1668
 {
   cong.1668 <- subset(wdc, EPAMethod == "M1668")
