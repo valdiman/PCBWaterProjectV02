@@ -3,33 +3,17 @@
 ## sites in USA. Data only AroclorCongener = Congener
 
 # Install packages
-install.packages("tidyverse")
 install.packages("ggplot2")
-install.packages("robustbase")
-install.packages("dplyr")
-install.packages("tibble")
-install.packages("Matrix")
-install.packages("lme4")
-install.packages("MuMIn")
-install.packages("lmerTest")
-install.packages("zoo")
-install.packages("dataRetrieval")
-install.packages("reshape")
+install.packages('stats')
+install.packages('FactoMineR')
+install.packages('factoextra')
 
 # Load libraries
 {
   library(ggplot2)
-  library(scales) # function trans_breaks
-  library(stringr) # str_detect
-  library(robustbase) # function colMedians
-  library(dplyr) # performs %>%
-  library(tibble) # adds a column
-  library(lme4) # performs lme
-  library(MuMIn) # gets Rs from lme
-  library(lmerTest) # gets the p-value from lme
-  library(zoo) # yields seasons
-  library(dataRetrieval) # read data from USGS
-  library(reshape)
+  library(stats)
+  library(FactoMineR)
+  library(factoextra)
 }
 
 # Read data ---------------------------------------------------------------
@@ -103,15 +87,20 @@ ggplot(prof.ave, aes(x = congener, y = mean)) +
 
 # PCB congener analysis ---------------------------------------------------
 # Prepare data for PCA
-
-t.prof <- data.frame(t(prof))
-# Add column names with samples name
-colnames(t.prof) <- cong$SampleID
-
-
+# Remove congeners with < 75% detection frequency
+prof.2 <- prof[, colMeans(prof > 0, na.rm = TRUE) == 1]
+rownames(prof.2) <- cong$SampleID
 # Perform PCA all samples
-PCA <- prcomp(t.prof, na.action = na.pass)
-summary(PCA)
+PCA <- PCA(prof.2, graph = FALSE)
+fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 30))
+fviz_pca_var(PCA, col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE) 
+fviz_pca_ind(PCA, col.var = "cos2",
+             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
+             repel = TRUE) 
+
+remove(PCA)
 
 # Add Aroclor data
 
