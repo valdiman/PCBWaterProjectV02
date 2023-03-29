@@ -4,17 +4,14 @@
 
 # Install packages
 install.packages("ggplot2")
-install.packages('stats')
 install.packages('FactoMineR')
 install.packages('factoextra')
-devtools::install_github("kassambara/ggpubr")
 
 # Load libraries
 {
   library(ggplot2)
-  library(stats)
-  library(FactoMineR)
-  library(factoextra)
+  library(FactoMineR) # Perform PCA
+  library(factoextra) # Plot result from PCA
 }
 
 # Read data ---------------------------------------------------------------
@@ -109,6 +106,7 @@ fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21,
   # Remove samples with only 0s
   cong.1668 <- cong.1668[!(rowSums(cong.1668[, c(14:117)],
                                    na.rm = TRUE)==0), ]
+  sampleID <- cong.1668$SampleID
   # Remove metadata
   cong.1668 <- subset(cong.1668,
                       select = -c(SampleID:AroclorCongener))
@@ -118,21 +116,17 @@ fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21,
 tmp <- rowSums(cong.1668, na.rm = TRUE)
 prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
 # Remove congeners with < 50% detection frequency
-prof.1668.2 <- prof[, colMeans(!is.na(prof.1668)) >= 0.6]
+prof.1668.2 <- prof.1668[, colMeans(!is.na(prof.1668)) >= 0.5]
 # Add SampleID names to row name
-rownames(prof.1668.2) <- cong.1668$SampleID
+rownames(prof.1668.2) <- sampleID
 
 PCA <- PCA(prof.1668.2, graph = FALSE)
+fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 30))
 fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21, 
              pointsize = 2, col.ind = "black", palette = "jco", 
              addEllipses = TRUE, label = "var",
              col.var = "black", repel = TRUE)
 
 
-# Add Aroclor data
-
-# PCA analysis
-
-# Cosine analysis
 
 
