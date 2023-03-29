@@ -7,6 +7,7 @@ install.packages("ggplot2")
 install.packages('stats')
 install.packages('FactoMineR')
 install.packages('factoextra')
+devtools::install_github("kassambara/ggpubr")
 
 # Load libraries
 {
@@ -87,20 +88,46 @@ ggplot(prof.ave, aes(x = congener, y = mean)) +
 
 # PCB congener analysis ---------------------------------------------------
 # Prepare data for PCA
-# Remove congeners with < 75% detection frequency
-prof.2 <- prof[, colMeans(prof > 0, na.rm = TRUE) == 1]
+# Remove congeners with < 50% detection frequency
+prof.2 <- prof[, colMeans(!is.na(prof)) >= 0.5]
+# Add SampleID names to row name
 rownames(prof.2) <- cong$SampleID
+
 # Perform PCA all samples
 PCA <- PCA(prof.2, graph = FALSE)
-fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 30))
+fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 100))
 fviz_pca_var(PCA, col.var = "cos2",
-             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
              repel = TRUE) 
-fviz_pca_ind(PCA, col.var = "cos2",
-             gradient.cols = c("#FFCC00", "#CC9933", "#660033", "#330033"),
-             repel = TRUE) 
+fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21, 
+             pointsize = 2, col.ind = "black", palette = "jco", 
+             addEllipses = TRUE, label = "var",
+             col.var = "black", repel = TRUE)
 
-remove(PCA)
+# Just looking at samples with Method 1668
+{
+  cong.1668 <- subset(wdc, EPAMethod == "M1668")
+  # Remove samples with only 0s
+  cong.1668 <- cong.1668[!(rowSums(cong.1668[, c(14:117)],
+                                   na.rm = TRUE)==0), ]
+  # Remove metadata
+  cong.1668 <- subset(cong.1668,
+                      select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  cong.1668 <- subset(cong.1668, select = -c(A1016:A1260))
+}
+tmp <- rowSums(cong.1668, na.rm = TRUE)
+prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
+# Remove congeners with < 50% detection frequency
+prof.1668.2 <- prof[, colMeans(!is.na(prof.1668)) >= 0.6]
+# Add SampleID names to row name
+rownames(prof.1668.2) <- cong.1668$SampleID
+
+PCA <- PCA(prof.1668.2, graph = FALSE)
+fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21, 
+             pointsize = 2, col.ind = "black", palette = "jco", 
+             addEllipses = TRUE, label = "var",
+             col.var = "black", repel = TRUE)
+
 
 # Add Aroclor data
 
