@@ -30,12 +30,12 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
   cong.1 <- subset(cong.1, select = -c(A1016:A1260))
 }
 
-# Create PCB profile distribution
+# Create an average PCB profile distribution
 {
   # Generate PCB profile for individual samples
   tmp <- rowSums(cong.1, na.rm = TRUE)
   prof <- sweep(cong.1, 1, tmp, FUN = "/")
-  # Generate average PCB profile
+  # Average
   prof.ave <- data.frame(colMeans(prof, na.rm = TRUE))
   colnames(prof.ave) <- c("mean")
   prof.sd <- data.frame(apply(prof, 2, sd, na.rm = TRUE))
@@ -52,6 +52,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
                               levels = unique(prof.ave$congener))
 }
 
+# Plot profiles -----------------------------------------------------------
 # Plot average PCB profile
 ggplot(prof.ave, aes(x = congener, y = mean)) +
   geom_bar(position = position_dodge(), stat = "identity",
@@ -85,31 +86,24 @@ ggplot(prof.ave, aes(x = congener, y = mean)) +
 
 # PCB congener analysis ---------------------------------------------------
 # Prepare data for PCA
-# Remove congeners with < 50% detection frequency
-prof.2 <- prof[, colMeans(!is.na(prof)) >= 0.5]
-# Add SampleID names to row name
-rownames(prof.2) <- cong$SampleID
-
-# Perform PCA all samples
-PCA <- PCA(prof.2, graph = FALSE)
-fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 100))
-fviz_pca_var(PCA, col.var = "cos2",
+# Add sample names to first column
+prof <- cbind(cong$SampleID, prof)
+# (1) All samples
+# Subset with samples with more than 75% congeners
+prof.1 <- prof[rowMeans(!is.na(prof)) >= 0.70, ]
+# Remove congeners with < 75% detection frequency
+prof.2 <- prof.1[, colMeans(!is.na(prof.1)) >= 0.75]
+# Perform PCA
+PCA.1 <- PCA(prof.2[, -1], graph = FALSE)
+fviz_eig(PCA.1, addlabels = TRUE, ylim = c(0, 100))
+fviz_pca_var(PCA.1, col.var = "cos2",
              repel = TRUE) 
-fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21, 
+fviz_pca_ind(PCA.1, geom.ind = "point", pointshape = 21, 
              pointsize = 2, col.ind = "black", palette = "jco", 
              addEllipses = TRUE, label = "var",
              col.var = "black", repel = TRUE)
 
-# Remove samples with less than x% of congeners
-prof <- cbind(cong$SampleID, prof)
-
-prop_non_na <- rowMeans(!is.na(prof))
-
-# subset data frame to rows with >= 50% non-NA values
-prof.2 <- prof[prop_non_na >= 0.8, ]
-
-
-# Just looking at samples with Method 1668
+# (2) Samples with Method 1668
 {
   cong.1668 <- subset(wdc, EPAMethod == "M1668")
   # Remove samples with only 0s
@@ -124,18 +118,44 @@ prof.2 <- prof[prop_non_na >= 0.8, ]
 }
 tmp <- rowSums(cong.1668, na.rm = TRUE)
 prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
+# Add sample names to first column
+prof.1668 <- cbind(sampleID, prof.1668)
+# Subset data frame to rows with >= 75% non-NA values
+prof.1668.1 <- prof.1668[rowMeans(!is.na(prof.1668)) >= 0.7, ]
 # Remove congeners with < 50% detection frequency
-prof.1668.2 <- prof.1668[, colMeans(!is.na(prof.1668)) >= 0.5]
-# Add SampleID names to row name
-rownames(prof.1668.2) <- sampleID
-
-PCA <- PCA(prof.1668.2, graph = FALSE)
-fviz_eig(PCA, addlabels = TRUE, ylim = c(0, 30))
-fviz_pca_ind(PCA, geom.ind = "point", pointshape = 21, 
+prof.1668.2 <- prof.1668.1[, colMeans(!is.na(prof.1668.1)) >= 0.75]
+# Perform PCA
+PCA.2 <- PCA(prof.1668.2[,-1], graph = FALSE)
+fviz_eig(PCA.2, addlabels = TRUE, ylim = c(0, 100))
+fviz_pca_ind(PCA.2, geom.ind = "point", pointshape = 21, 
              pointsize = 2, col.ind = "black", palette = "jco", 
              addEllipses = TRUE, label = "var",
              col.var = "black", repel = TRUE)
 
-
-
+# Cosine theta analysis ---------------------------------------------------
+# Samples with 100% congeners only
+prof.cos.1 <- prof[rowMeans(!is.na(prof)) >= 1, ]
+# Transpose and remove sample names
+prof.cos.2 <- t(prof.cos.1[,-1])
+# Create matrix to storage results
+costheta <- matrix(nrow = length(prof.cos.2[1,]),
+                   ncol = length(prof.cos.2[1,]))
+# Perform Cosine Theta
+for (i in 1:length(prof.cos.2[1,])) {
+  for (j in 1:length(prof.cos.2[1,])) {
+    m1 <- prof.cos.2[,i]
+    m2 <- prof.cos.2[,j]
+    costheta[i,j] <- sum(m1*m2)/(sum(m1^2)*sum(m2^2))^0.5
+  }
+}
+# Just 3 significant figures
+costheta <- formatC(signif(costheta, digits = 3))
+# Remove upper diagonal values
+costheta[upper.tri(costheta)] <- NA
+# Add name to columns
+colnames(costheta) <- prof.cos.1[,1]
+# Add names to rows
+rownames(costheta) <- prof.cos.1[,1]
+# Export data
+write.csv(costheta, file = "Output/Data/csv/costheta.csv")
 
