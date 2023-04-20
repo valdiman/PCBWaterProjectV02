@@ -133,7 +133,7 @@ ggplot(tpcb, aes(x = "", y = tPCB)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_classic() +
   theme(aspect.ratio = 14/2) +
-  xlab(expression(bold(Sigma*"PCB (n = 5250)")))+
+  xlab(expression(bold(Sigma*"PCB")))+
   ylab(expression(bold("Water Concentration 1990 - 2020 (pg/L)"))) +
   theme(axis.text.y = element_text(face = "bold", size = 10),
         axis.title.y = element_text(face = "bold", size = 10)) +
@@ -408,14 +408,16 @@ ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
 
 # Plot residuals vs. predictions
 {
-  plot(log10(tpcb$lmepredicted), res.tpcb,
-       points(log10(tpcb$lmepredicted), res.tpcb, pch = 16, 
+  plot(tpcb$lmepredicted, res.tpcb,
+       points(tpcb$lmepredicted, res.tpcb, pch = 16, 
               col = "#66ccff"),
        ylim = c(-4, 4),
-       xlab = expression(paste("Predicted lme concentration log10",
+       xlim = c(1, 9^5),
+       xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
   abline(0, 0)
   abline(h = seq(-4, 4, 1), col = "grey")
-  abline(v = seq(1, 6, 1), col = "grey")
+  abline(v = seq(1, 60001, 10000), col = "grey")
 }
+
