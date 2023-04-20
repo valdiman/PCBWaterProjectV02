@@ -74,7 +74,7 @@ summary(wdc.cong.freq$PCB.frequency)
 
 # Frequency detection plot
 ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
-  geom_bar(stat = "identity", fill = "#66ccff") +
+  geom_bar(stat = "identity", fill = "#66ccff", color = "black") +
   geom_vline(xintercept = 100*mean(wdc.cong.freq$PCB.frequency),
              color = "red") +
   ylab("") +
@@ -84,7 +84,7 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   xlab(expression(bold("Frequency detection (%)"))) +
   theme(axis.text.x = element_text(face = "bold", size = 5),
         axis.title.x = element_text(face = "bold", size = 5)) +
-  theme(axis.text.y = element_text(face = "bold", size = 3))
+  theme(axis.text.y = element_text(face = "bold", size = 4))
 
 # Total Concentration Analysis --------------------------------------------
 # Data preparation
