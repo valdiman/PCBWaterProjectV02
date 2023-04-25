@@ -173,7 +173,7 @@ tpcb <- por.tpcb.2$tPCB
 time <- por.tpcb.2$time
 site <- por.tpcb.2$site.code
 season <- por.tpcb.2$season
-flow <- por.tpcb.2$flow
+flow <- por.tpcb.2$flow.1 # use 1
 tem <- por.tpcb.2$temp
 # tPCB vs. time + season + flow + temp + site
 lme.por.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
@@ -235,8 +235,7 @@ ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 50, y = 10^4.3,
-           label = expression(atop("Portland Harbor (R"^2*"= X)",
-                                   paste("t"[1/2]*" = X ± Y (yr)"))),
+           label = expression("Portland Harbor (R"^2*"= 0.68)"),
            size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
