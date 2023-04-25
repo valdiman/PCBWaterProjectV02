@@ -245,7 +245,7 @@ ggplot(hou.tpcb.8, aes(y = tPCB,
 # tPCB Regressions --------------------------------------------------------
 # MLR tPCB vs. time + season + flow
 mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
-                   data = hou.tpcb.20)
+                   data = hou.tpcb.8)
 # See results
 summary(mlr.hou.tpcb)
 # Look at residuals
