@@ -158,10 +158,10 @@ ggplot(por.tpcb, aes(x = factor(SiteID), y = tPCB)) +
                        min(por.tpcb$date), max(por.tpcb$date))
   temp.1 <- readNWISdv(sitePorN1, paramtemp,
                        min(por.tpcb$date), max(por.tpcb$date))
-  # Add USGS data to fox.tpcb, matching dates
-  por.tpcb$flow.1 <- flow.1$X_00060_00003[match(por.tpcb$date, flow.1$Date)]
-  por.tpcb$flow.2 <- flow.2$X_00060_00003[match(por.tpcb$date, flow.2$Date)]
-  por.tpcb$temp.1 <- temp.1$X_00010_00003[match(por.tpcb$date, temp.1$Date)]
+  # Add USGS data to por.tpcb, matching dates
+  por.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(por.tpcb$date, flow.1$Date)]
+  por.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.tpcb$date, flow.2$Date)]
+  por.tpcb$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.tpcb$date, temp.1$Date)]
   # Remove samples with temp = NA
   por.tpcb.2 <- na.omit(por.tpcb)
 }
@@ -211,6 +211,49 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
+# Create matrix to store results
+{
+  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb[1] <- fixef(lme.por.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.por.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.por.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.por.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.por.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.por.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.por.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.por.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.por.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.por.tpcb)[4] # temperature
+  lme.tpcb[11] <- summary(lme.por.tpcb)$coef[4,"Std. Error"] # temperature error
+  lme.tpcb[12] <- summary(lme.por.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.tpcb[13] <- fixef(lme.por.tpcb)[5] # season 2
+  lme.tpcb[14] <- summary(lme.por.tpcb)$coef[5,"Std. Error"] # season 2 error
+  lme.tpcb[15] <- summary(lme.por.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[16] <- fixef(lme.por.tpcb)[6] # season 3
+  lme.tpcb[17] <- summary(lme.por.tpcb)$coef[6,"Std. Error"] # season 3 error
+  lme.tpcb[18] <- summary(lme.por.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[21] <- as.data.frame(VarCorr(lme.por.tpcb))[1,'sdcor']
+  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2m']
+  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.por.tpcb))[1, 'R2c']
+  lme.tpcb[24] <- shapiro.test(resid(lme.por.tpcb))$p.value
+}
+
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv", "temperature",
+                        "temperature.error", "temperature.pv", "season2",
+                        "season2.error", "season2, pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandRiverLmetPCB.csv")
+
 # Modeling plots
 # (1) Get predicted values tpcb
 fit.lme.values.por.tpcb <- as.data.frame(fitted(lme.por.tpcb))
@@ -234,7 +277,7 @@ ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^4.3,
+  annotate('text', x = 50, y = 10^4.4,
            label = expression("Portland Harbor (R"^2*"= 0.68)"),
            size = 3, fontface = 2)
 
@@ -302,7 +345,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
            y = 10^3.8, label = "Portland Harbor", size = 3.5)
 
 # Individual PCB Analysis -------------------------------------------------
-# Use fox.1 (no 0s samples)
+# Use por.1 (no 0s samples)
 # Prepare data.frame
 {
   por.pcb <- subset(por.1, select = -c(SampleID:AroclorCongener))
@@ -341,7 +384,7 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
                        min(por.pcb.1$date), max(por.pcb.1$date))
   temp.1 <- readNWISdv(sitePorN1, paramtemp,
                        min(por.pcb.1$date), max(por.pcb.1$date))
-  # Add USGS data to fox.tpcb, matching dates, conversion to m3/s
+  # Add USGS data to por.tpcb, matching dates, conversion to m3/s
   por.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(por.pcb.1$date, flow.1$Date)]
   por.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.pcb.1$date, flow.2$Date)]
   por.pcb.1$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$date, temp.1$Date)]
@@ -468,7 +511,7 @@ t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 # (1) Get predicted values pcbi
 date.pcbi <- format(por.pcb.2$SampleDate, "%Y-%m-%d")
 obs <- por.pcb.3$PCB17
-fox.pcbi <- cbind(date.pcbi, obs)
+por.pcbi <- cbind(date.pcbi, obs)
 fit.lme.values.pcbi <- as.data.frame(fitted(lme.por.pcbi))
 por.pcbi <- cbind(por.pcbi, fit.lme.values.pcbi)
 colnames(por.pcbi) <- c("date", "obs", 'lme')
