@@ -321,7 +321,7 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
 # Plot residuals vs. predictions
 {
   plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
-       points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
+       points(log10(kal.tpcb.2$predicted), resid(lme.kal.tpcb), pch = 16, 
               col = "#66ccff"),
        xlim = c(1, 6),
        ylim = c(-2, 2),
@@ -334,6 +334,7 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   }
 
 # Estimate a factor of 2 between observations and predictions
-kal.tpcb.1$factor2 <- kal.tpcb.1$tPCB/kal.tpcb.1$predicted
-factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.1$factor2 > 0.5 & kal.tpcb.1$factor2 < 2,
-                                ])/length(kal.tpcb.1[,1])*100
+kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
+factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
+                                ])/length(kal.tpcb.2[,1])*100
+
