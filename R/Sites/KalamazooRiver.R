@@ -219,13 +219,14 @@ ggplot(kal.tpcb.2, aes(y = tPCB,
 
 # Regressions -------------------------------------------------------------
 # Perform Linear Mixed-Effects Model (LMEM)
-tpcb <- kal.tpcb.1$tPCB
-time <- kal.tpcb.1$time
-site <- kal.tpcb.1$site.code
-season <- kal.tpcb.1$season
-flow <- kal.tpcb.1$flow.1
+# Use kal.tpcb.2
+tpcb <- kal.tpcb.2$tPCB
+time <- kal.tpcb.2$time
+site <- kal.tpcb.2$site.code
+season <- kal.tpcb.2$season
+flow <- kal.tpcb.2$flow.1
 
-lmem.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
+lme.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -233,10 +234,10 @@ lmem.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
                   na.action = na.exclude)
 
 # See results
-summary(lmem.kal.tpcb)
+summary(lme.kal.tpcb)
 # Look at residuals
 {
-  res.kal.tpcb <- resid(lmem.kal.tpcb) # get list of residuals
+  res.kal.tpcb <- resid(lme.kal.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   qqnorm(res.kal.tpcb, main = "log10(C)")
   qqnorm(res.kal.tpcb,
@@ -245,33 +246,60 @@ summary(lmem.kal.tpcb)
   # Add a straight diagonal line to the plot
   qqline(res.kal.tpcb)
 }
-# Shapiro test
-shapiro.test(res.kal.tpcb)
-# Random effect site Std Dev
-RandonEffectSiteStdDev <- as.data.frame(VarCorr(lmem.kal.tpcb))[1,'sdcor']
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lmem.kal.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lmem.kal.tpcb))[1, 'R2c']
 
-# Extract coefficient values
-time.coeff <- summary(lmem.kal.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lmem.kal.tpcb)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -log(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
+# Create matrix to store results
+{
+  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb[1] <- fixef(lme.kal.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.kal.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.kal.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.kal.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.kal.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.kal.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.kal.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.kal.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.kal.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.kal.tpcb)[4] # temperature
+  lme.tpcb[11] <- summary(lme.kal.tpcb)$coef[4,"Std. Error"] # temperature error
+  lme.tpcb[12] <- summary(lme.kal.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.tpcb[13] <- fixef(lme.kal.tpcb)[5] # season 2
+  lme.tpcb[14] <- summary(lme.kal.tpcb)$coef[5,"Std. Error"] # season 2 error
+  lme.tpcb[15] <- summary(lme.kal.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[16] <- fixef(lme.kal.tpcb)[6] # season 3
+  lme.tpcb[17] <- summary(lme.kal.tpcb)$coef[6,"Std. Error"] # season 3 error
+  lme.tpcb[18] <- summary(lme.kal.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[21] <- as.data.frame(VarCorr(lme.kal.tpcb))[1,'sdcor']
+  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2m']
+  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2c']
+  lme.tpcb[24] <- shapiro.test(resid(lme.kal.tpcb))$p.value
+}
+
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv", "temperature",
+                        "temperature.error", "temperature.pv", "season2",
+                        "season2.error", "season2, pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/KalamazooLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
-fit.lme.values.kal.tpcb <- as.data.frame(fitted(lmem.kal.tpcb))
+fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
 # Add column name
 colnames(fit.lme.values.kal.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-kal.tpcb.1$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
+kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(kal.tpcb.1, aes(x = tPCB, y = predicted)) +
+ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -285,15 +313,15 @@ ggplot(kal.tpcb.1, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 200, y = 10^5.4,
+  annotate('text', x = 200, y = 10^5.8,
            label = expression(atop("Kalamazoo River (R"^2*"= 0.97)",
                                    paste("t"[1/2]*" = 3 ± 0.1 (yr)"))),
            size = 3, fontface = 2)
 
 # Plot residuals vs. predictions
 {
-  plot(log10(kal.tpcb.1$predicted), res.kal.tpcb,
-       points(log10(kal.tpcb.1$predicted), res.kal.tpcb, pch = 16, 
+  plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
+       points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
               col = "#66ccff"),
        xlim = c(1, 6),
        ylim = c(-2, 2),
