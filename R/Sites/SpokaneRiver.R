@@ -258,21 +258,6 @@ summary(lme.spo.tpcb)
   # Add a straight diagonal line to the plot
   qqline(res.spo.tpcb)
 }
-# Shapiro test
-shapiro.test(res.spo.tpcb)
-# Random effect site Std Dev
-RandonEffectSiteStdDev <- as.data.frame(VarCorr(lme.spo.tpcb))[1,'sdcor']
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2c']
-# Extract coefficient values
-time.coeff <- summary(lme.spo.tpcb)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lme.spo.tpcb)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
 # Create matrix to store results
 {
