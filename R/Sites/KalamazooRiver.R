@@ -321,7 +321,7 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
 # Plot residuals vs. predictions
 {
   plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
-       points(log10(kal.tpcb.2$predicted), resid(lme.kal.tpcb), pch = 16, 
+       points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
               col = "#66ccff"),
        xlim = c(1, 6),
        ylim = c(-2, 2),
