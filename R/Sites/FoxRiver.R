@@ -284,6 +284,49 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
+# Create matrix to store results
+{
+  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb[1] <- fixef(lme.fox.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.fox.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.fox.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.fox.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.fox.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.fox.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.fox.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.fox.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.fox.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.fox.tpcb)[4] # temperature
+  lme.tpcb[11] <- summary(lme.fox.tpcb)$coef[4,"Std. Error"] # temperature error
+  lme.tpcb[12] <- summary(lme.fox.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
+  lme.tpcb[13] <- fixef(lme.fox.tpcb)[5] # season 2
+  lme.tpcb[14] <- summary(lme.fox.tpcb)$coef[5,"Std. Error"] # season 2 error
+  lme.tpcb[15] <- summary(lme.fox.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[16] <- fixef(lme.fox.tpcb)[6] # season 3
+  lme.tpcb[17] <- summary(lme.fox.tpcb)$coef[6,"Std. Error"] # season 3 error
+  lme.tpcb[18] <- summary(lme.fox.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[21] <- as.data.frame(VarCorr(lme.fox.tpcb))[1,'sdcor']
+  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2m']
+  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.fox.tpcb))[1, 'R2c']
+  lme.tpcb[24] <- shapiro.test(resid(lme.fox.tpcb))$p.value
+}
+
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "flow", "flow.error", "flow.pv", "temperature",
+                       "temperature.error", "temperature.pv", "season2",
+                       "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiverLmetPCB.csv")
+
 # Modeling plots
 # (1) Get predicted values tpcb
 fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
