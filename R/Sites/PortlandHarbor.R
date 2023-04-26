@@ -269,7 +269,7 @@ ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
 # Plot residuals vs. predictions
 {
   plot(log10(por.tpcb.2$predicted), res.por.tpcb,
-       points(log10(por.tpcb.2$predicted), res.por.tpcb, pch = 16, 
+       points(log10(por.tpcb.2$predicted), resid(lme.por.tpcb), pch = 16, 
               col = "#66ccff"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
