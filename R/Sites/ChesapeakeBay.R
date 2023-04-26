@@ -358,7 +358,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/csv/LmeChePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
 
 # Generate predictions
 # Create matrix to store results
@@ -374,6 +374,9 @@ for (i in 1:length(che.pcb.2[1,])) {
               na.action = na.exclude)
   lme.fit.pcb[,i] <- fitted(fit)
 }
+
+
+
 
 # Estimate a factor of 2 between observations and predictions
 factor2 <- 10^(che.pcb.2)/10^(lme.fit.pcb)
