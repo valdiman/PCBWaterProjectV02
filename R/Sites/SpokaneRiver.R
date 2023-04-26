@@ -141,44 +141,48 @@ ggplot(spo.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 
 # Include USGS flow data --------------------------------------------------
 # Include flow data from USGS station Spokane River
-siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
-siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
-siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
-siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
-siteSpoN5 <- "12422000"
-# Codes to retrieve data
-paramflow <- "00060" # discharge, ft3/s
-#paramtemp <- "00010" # water temperature, C No data
-# Retrieve USGS data
-flow.1 <- readNWISdv(siteSpoN1, paramflow,
-                     min(spo.tpcb$date), max(spo.tpcb$date))
-flow.2 <- readNWISdv(siteSpoN2, paramflow,
-                     min(spo.tpcb$date), max(spo.tpcb$date))
-flow.3 <- readNWISdv(siteSpoN3, paramflow,
-                     min(spo.tpcb$date), max(spo.tpcb$date))
-flow.4 <- readNWISdv(siteSpoN4, paramflow,
-                     min(spo.tpcb$date), max(spo.tpcb$date))
-
-# Add USGS data to spo.tpcb, matching dates
-spo.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(spo.tpcb$date,
-                                              flow.1$Date)]
-spo.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(spo.tpcb$date,
-                                              flow.2$Date)]
-spo.tpcb$flow.3 <- 0.03*flow.3$X_00060_00003[match(spo.tpcb$date,
-                                              flow.3$Date)]
-spo.tpcb$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.tpcb$date,
-                                              flow.4$Date)]
+{
+  siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
+  siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
+  siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
+  siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
+  siteSpoN5 <- "12422000"
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  #paramtemp <- "00010" # water temperature, C No data
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteSpoN1, paramflow,
+                       min(spo.tpcb$date), max(spo.tpcb$date))
+  flow.2 <- readNWISdv(siteSpoN2, paramflow,
+                       min(spo.tpcb$date), max(spo.tpcb$date))
+  flow.3 <- readNWISdv(siteSpoN3, paramflow,
+                       min(spo.tpcb$date), max(spo.tpcb$date))
+  flow.4 <- readNWISdv(siteSpoN4, paramflow,
+                       min(spo.tpcb$date), max(spo.tpcb$date))
+  
+  # Add USGS data to spo.tpcb, matching dates
+  spo.tpcb$flow.1 <- 0.03*flow.1$X_00060_00003[match(spo.tpcb$date,
+                                                     flow.1$Date)]
+  spo.tpcb$flow.2 <- 0.03*flow.2$X_00060_00003[match(spo.tpcb$date,
+                                                     flow.2$Date)]
+  spo.tpcb$flow.3 <- 0.03*flow.3$X_00060_00003[match(spo.tpcb$date,
+                                                     flow.3$Date)]
+  spo.tpcb$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.tpcb$date,
+                                                     flow.4$Date)]
+}
 
 # Remove site -------------------------------------------------------------
-## Sample sites not located in the Spokane River
-spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Regional WRF
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
-spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR015")) # Hagman Creek
+## Sample sites not located at the Spokane River
+{
+  spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Regional WRF
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
+  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR015")) # Hagman Creek
+}
 
 # (1) Histograms
 hist(spo.tpcb.2$tPCB)
@@ -233,7 +237,7 @@ tpcb <- spo.tpcb.2$tPCB
 time <- spo.tpcb.2$time
 site <- spo.tpcb.2$site.code
 season <- spo.tpcb.2$season
-flow <- spo.tpcb.2$flow.4
+flow <- spo.tpcb.2$flow.4 # use flow 4
 # tPCB vs. time + season + flow + temp + site
 lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
                      REML = FALSE,
@@ -270,6 +274,45 @@ t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
 # Calculate error
 t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
 
+# Create matrix to store results
+{
+  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb[1] <- fixef(lme.spo.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.spo.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.spo.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.spo.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.spo.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.spo.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.spo.tpcb)[3] # flow
+  lme.tpcb[8] <- summary(lme.spo.tpcb)$coef[3,"Std. Error"] # flow error
+  lme.tpcb[9] <- summary(lme.spo.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.tpcb[10] <- fixef(lme.spo.tpcb)[4] # season 2
+  lme.tpcb[11] <- summary(lme.spo.tpcb)$coef[4,"Std. Error"] # season 2 error
+  lme.tpcb[12] <- summary(lme.spo.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[13] <- fixef(lme.spo.tpcb)[5] # season 3
+  lme.tpcb[14] <- summary(lme.spo.tpcb)$coef[5,"Std. Error"] # season 3 error
+  lme.tpcb[15] <- summary(lme.spo.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[18] <- as.data.frame(VarCorr(lme.spo.tpcb))[1,'sdcor']
+  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2m']
+  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.spo.tpcb))[1, 'R2c']
+  lme.tpcb[21] <- shapiro.test(resid(lme.spo.tpcb))$p.value
+}
+
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "flow", "flow.error", "flow.pv", "season2",
+                        "season2.error", "season2, pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/SpokaneRiverLmetPCB.csv")
+
 # Modeling plots
 # (1) Get predicted values tpcb
 fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
@@ -293,7 +336,7 @@ ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 50, y = 10^3.2,
+  annotate('text', x = 30, y = 10^3.4,
            label = expression(atop("Spokane River (R"^2*"= 0.58)",
                                    paste(""))),
            size = 3, fontface = 2)
