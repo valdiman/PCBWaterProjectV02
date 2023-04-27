@@ -349,7 +349,7 @@ for (i in 1:length(che.pcb.2[1,])) {
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 # Add congener names
 congeners <- colnames(che.pcb.2)
-lme.pcb <- cbind(congeners, lme.pcb)
+lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
@@ -357,6 +357,9 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+# Remove congeners with no normal distribution
+# Shapiro test p-value < 0.05
+lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
