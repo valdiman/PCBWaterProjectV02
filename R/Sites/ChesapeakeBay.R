@@ -278,6 +278,8 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
+  # Values coming from Data preparation section (che.tpcb)
+  # Remove metadata
   che.pcb <- subset(che.1, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
   che.pcb <- subset(che.pcb, select = -c(A1016:A1260))
@@ -292,16 +294,15 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
                        -which(colSums(is.na(che.pcb))/nrow(che.pcb) > 0.7)]
   # Add site ID
   che.pcb.1$SiteID <- che.1$SiteID
-  # Change date format
-  che.pcb.1$SampleDate <- as.Date(che.1$SampleDate, format = "%m/%d/%y")
-  # Calculate sampling time
-  che.pcb.1$time <- as.Date(che.1$SampleDate) - min(as.Date(che.1$SampleDate))
-  # Create individual code for each site sampled
-  che.pcb.1$site.numb <- che.1$SiteID %>% as.factor() %>% as.numeric
-  # Include season
-  che.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
-                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-  # Remove metadata
+  # Add SampleDate
+  che.pcb.1$SampleDate <- che.1$SampleDate
+  # Add sampling time
+  che.pcb.1$time <- che.tpcb$time
+  # Add sampling site code
+  che.pcb.1$site.numb <- che.tpcb$site.code
+  # Add season
+  che.pcb.1$season <- che.tpcb$season
+  # Remove metadata for analysis
   che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:season))
 }
 
