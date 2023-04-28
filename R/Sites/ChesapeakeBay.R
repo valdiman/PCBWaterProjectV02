@@ -14,6 +14,7 @@ install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
+install.packages("tidyr")
 
 # Load libraries
 {
@@ -29,6 +30,7 @@ install.packages("reshape")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
+  library(tidyr) # function gather
 }
 
 # Read data ---------------------------------------------------------------
@@ -388,14 +390,20 @@ factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
 # Plot 1:1 for all congeners
-# Add SiteID to both data.frames
-che.pcb.4 <- cbind(che.pcb.1$SiteID, che.pcb.3)
-lme.fit.pcb.2 <- as.data.frame(cbind(che.pcb.1$SiteID, lme.fit.pcb))
-# Add/fix column name to SiteID
-colnames(che.pcb.4)[1] <- 'SiteID'
-colnames(lme.fit.pcb.2)[1] <- 'SiteID'
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add code number to first column
+che.pcb.4 <- cbind(code = row.names(che.pcb.3), che.pcb.3)
+lme.fit.pcb.2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 # Merge both new data.frames
-pcb.plot <- merge(che.pcb.4, lme.fit.pcb.2, by = "SiteID")
+pcb.plot <- merge(che.pcb.4, lme.fit.pcb.2, by = "code")
+
+# Convert the data from wide to long format using gather()
+pcb.plot.2 <- gather(pcb.plot, key = "variable", value = "value", -code)
+
+# Plot the data with ggplot
+ggplot(pcb.plot.2, aes(x = code, y = value, fill = variable)) +
+  geom_point(stat = "identity", position = "dodge")
 
 
 
