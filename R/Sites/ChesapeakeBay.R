@@ -365,12 +365,15 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
 
 # Generate predictions
+# Remove congeners with no Normality
+che.pcb.3 <- select(che.pcb.2, -PCB20.21.28.31.33.50.53, -PCB40.41.64.71.72,
+                    -PCB61.66.70.74.76.93.95.98.100.102, -PCB180.193)
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(che.pcb.2[,1]),
-                      ncol = length(che.pcb.2[1,]))
+lme.fit.pcb <- matrix(nrow = length(che.pcb.3[,1]),
+                      ncol = length(che.pcb.3[1,]))
 
-for (i in 1:length(che.pcb.2[1,])) {
-  fit <- lmer(che.pcb.2[,i] ~ 1 + time + season + (1|site),
+for (i in 1:length(che.pcb.3[1,])) {
+  fit <- lmer(che.pcb.3[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -379,13 +382,22 @@ for (i in 1:length(che.pcb.2[1,])) {
   lme.fit.pcb[,i] <- fitted(fit)
 }
 
-
-
-
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(che.pcb.2)/10^(lme.fit.pcb)
+factor2 <- 10^(che.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Plot 1:1 for all congeners
+# Add SiteID to both data.frames
+che.pcb.4 <- cbind(che.pcb.1$SiteID, che.pcb.3)
+lme.fit.pcb.2 <- as.data.frame(cbind(che.pcb.1$SiteID, lme.fit.pcb))
+# Add/fix column name to SiteID
+colnames(che.pcb.4)[1] <- 'SiteID'
+colnames(lme.fit.pcb.2)[1] <- 'SiteID'
+# Merge both new data.frames
+pcb.plot <- merge(che.pcb.4, lme.fit.pcb.2, by = "SiteID")
+
+
 
 # Selected individual PCB regression --------------------------------------
 # lme
