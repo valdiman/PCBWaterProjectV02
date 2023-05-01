@@ -367,7 +367,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
 
 # Generate predictions
-# Remove congeners with no Normality
+# Remove congeners with no Normality from che.pcb.2
 che.pcb.3 <- select(che.pcb.2, -PCB20.21.28.31.33.50.53, -PCB40.41.64.71.72,
                     -PCB61.66.70.74.76.93.95.98.100.102, -PCB180.193)
 # Create matrix to store results
@@ -392,133 +392,33 @@ factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
 # Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb
+colnames(lme.fit.pcb) <- colnames(che.pcb.3)
 # Add code number to first column
-che.pcb.4 <- cbind(code = row.names(che.pcb.3), che.pcb.3)
-lme.fit.pcb.2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
-# Merge both new data.frames
-pcb.plot <- merge(che.pcb.4, lme.fit.pcb.2, by = "code")
+df1 <- cbind(code = row.names(che.pcb.3), che.pcb.3)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# Convert the data from wide to long format using gather()
-pcb.plot.2 <- gather(pcb.plot, key = "variable", value = "value", -code)
-
-# Plot the data with ggplot
-ggplot(pcb.plot.2, aes(x = code, y = value, fill = variable)) +
-  geom_point(stat = "identity", position = "dodge")
-
-
-
-# Selected individual PCB regression --------------------------------------
-# lme
-lme.che.pcbi <- lmer(che.pcb.2$PCB56.60 ~ 1 + time + season +
-                       (1|site), REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"),
-                     na.action = na.exclude)
-
-# See results
-summary(lme.che.pcbi)
-# Look at residuals
-{
-  res.lme.che.pcbi <- resid(lme.che.pcbi) # get list of residuals
-  # Create Q-Q plot for residuals
-  qqnorm(res.lme.che.pcbi, main = expression(paste("Normal Q-Q Plot PCBs 56+60")))
-  # Add a straight diagonal line to the plot
-  qqline(res.lme.che.pcbi)
+# loop over all pairs of columns
+for (i in 2:length(df1)) {
+  # create plot for each pair of columns
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 10^1, y = 10^4,
+             label = paste(names(df1)[i]),
+             size = 3, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
+  # print plot
+  print(p)
 }
-# Shapiro test
-shapiro.test(res.lme.che.pcbi)
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lme.che.pcbi))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lme.che.pcbi))[1, 'R2c']
-# Extract coefficient values
-time.coeff <- summary(lme.che.pcbi)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lme.che.pcbi)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
-
-# (1) Get predicted values pcbi
-date.pcbi <- format(che.pcb.1$SampleDate, "%Y-%m-%d")
-obs <- che.pcb.2$PCB56.60
-che.pcbi <- cbind(date.pcbi, obs)
-fit.lme.values.pcbi <- as.data.frame(fitted(lme.che.pcbi))
-che.pcbi <- cbind(che.pcbi, fit.lme.values.pcbi)
-colnames(che.pcbi) <- c("date", "obs", 'lme')
-che.pcbi$date <- as.Date(che.pcbi$date)
-che.pcbi$obs <- as.numeric(che.pcbi$obs)
-
-# Plot residuals vs. predictions
-{
-  plot(che.pcbi$lme, res.lme.che.pcbi,
-       points(che.pcbi$lme, res.lme.che.pcbi, pch = 16, 
-              col = "#66ccff"),
-       xlim = c(0, 4),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted concentration PCBs 56+60 (pg/L)")),
-       ylab = "Residual (lme)")
-  abline(0, 0)
-  abline(h = seq(-2, 2, 1), col = "grey")
-  abline(v = seq(0, 4, 0.5), col = "grey")
-}
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.che.pcbi <- as.data.frame(fitted(lme.che.pcbi))
-# Add column name
-colnames(fit.lme.values.che.pcbi) <- c("predicted")
-# Add predicted values to data.frame
-che.pcb.2$predicted <- 10^(fit.lme.values.che.pcbi$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(che.pcb.2, aes(x = 10^(PCB56.60), y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(0.1, 100000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 100000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCBs 56+60 (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCBs 56+60 (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 5, y = 10^4.5,
-           label = expression(atop("Chesapeake Bay (R"^2*" = 0.73)",
-                                   paste("t"[1/2]*" = 0 ± 5.7x10"^-0.5*" (yr)"))),
-           size = 3, fontface = 2)
-
-# Modeling plots
-# Change data.frame format to be plotted
-che.pcbi.2 <- melt(che.pcbi, id.vars = c("date"))
-# Plot
-ggplot(che.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(0.1, 100000)) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste("PCB 17 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2004-06-01", format = "%Y-%m-%d"),
-           y = 1, label = "Chesapeake Bay", size = 3)
-
