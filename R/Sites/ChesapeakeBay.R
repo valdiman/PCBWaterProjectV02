@@ -392,13 +392,13 @@ factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
 # Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
-# Add congener names to lme.fit.pcb
+# Add congener names to lme.fit.pcb columns
 colnames(lme.fit.pcb) <- colnames(che.pcb.3)
 # Add code number to first column
 df1 <- cbind(code = row.names(che.pcb.3), che.pcb.3)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# loop over all pairs of columns
+# Loop over all pairs of columns
 for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
