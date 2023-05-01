@@ -361,6 +361,7 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
+lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
