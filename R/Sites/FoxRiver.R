@@ -470,22 +470,27 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
+# Get the congeners that are not showing normality
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiverLmePCB.csv")
 
 # Generate predictions
-# Remove congeners with no Normality from che.pcb.2
-fox.pcb.4 <- select(fox.pcb.3, -PCB20.21.28.31.33.50.53, -PCB40.41.64.71.72,
-                    -PCB61.66.70.74.76.93.95.98.100.102, -PCB180.193)
+# Select congeners that are not showing normality to be remove from che.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(fox.pcb.3) %in% df$names_to_remove)
+# Remove columns from che.pcb.2 with congeners that don't show normality
+fox.pcb.4 <- fox.pcb.3[, -cols_to_remove]
 
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(fox.pcb.3[,1]),
-                  ncol = length(fox.pcb.3[1,]))
+lme.fit.pcb <- matrix(nrow = length(fox.pcb.4[,1]),
+                  ncol = length(fox.pcb.4[1,]))
 
-for (i in 1:length(fox.pcb.3[1,])) {
-  fit <- lmer(fox.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+for (i in 1:length(fox.pcb.4[1,])) {
+  fit <- lmer(fox.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -495,90 +500,40 @@ for (i in 1:length(fox.pcb.3[1,])) {
 }
 
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(fox.pcb.3)/10^(lme.fit.pcb)
+factor2 <- 10^(fox.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
-# Selected individual PCB regression --------------------------------------
-# lme
-lme.fox.pcbi <- lmer(fox.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
-                       (1|site), REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"),
-                     na.action = na.exclude)
+# Plot 1:1 for all congeners
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb columns
+colnames(lme.fit.pcb) <- colnames(fox.pcb.4)
+# Add code number to first column
+df1 <- cbind(code = row.names(fox.pcb.4), fox.pcb.4)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# See results
-summary(lme.fox.pcbi)
-# Look at residuals
-{
-  res.lme.fox.pcbi <- resid(lme.fox.pcbi) # get list of residuals
-  # Create Q-Q plot for residuals
-  qqnorm(res.lme.fox.pcbi, main = expression(paste("Normal Q-Q Plot PCB 17")))
-  # Add a straight diagonal line to the plot
-  qqline(res.lme.fox.pcbi)
+# Loop over all pairs of columns
+for (i in 2:length(df1)) {
+  # create plot for each pair of columns
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 10^0.1, y = 10^3.5,
+             label = paste(names(df1)[i]),
+             size = 3, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
+  # print plot
+  print(p)
 }
-# Shapiro test
-shapiro.test(res.lme.fox.pcbi)
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lme.fox.pcbi))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lme.fox.pcbi))[1, 'R2c']
-# Extract coefficient values
-time.coeff <- summary(lme.fox.pcbi)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lme.fox.pcbi)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
-
-# (1) Get predicted values pcbi
-date.pcbi <- format(fox.pcb.2$SampleDate, "%Y-%m-%d")
-obs <- fox.pcb.3$PCB17
-fox.pcbi <- cbind(date.pcbi, obs)
-fit.lme.values.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
-fox.pcbi <- cbind(fox.pcbi, fit.lme.values.pcbi)
-colnames(fox.pcbi) <- c("date", "obs", 'lme')
-fox.pcbi$date <- as.Date(fox.pcbi$date)
-fox.pcbi$obs <- as.numeric(fox.pcbi$obs)
-
-# Plot residuals vs. predictions
-{
-  plot(fox.pcbi$lme, res.lme.fox.pcbi,
-       points(fox.pcbi$lme, res.lme.fox.pcbi, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted concentration PCB 17 (pg/L)")),
-       ylab = "Residual (lme)")
-  abline(0, 0)
-  abline(h = seq(-2, 2, 1), col = "grey")
-  abline(v = seq(0.5, 2, 0.5), col = "grey")
-}
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.fox.pcbi <- as.data.frame(fitted(lme.fox.pcbi))
-# Add column name
-colnames(fit.lme.values.fox.pcbi) <- c("predicted")
-# Add predicted values to data.frame
-fox.pcb.3$predicted <- 10^(fit.lme.values.fox.pcbi$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(fox.pcb.3, aes(x = 10^(PCB17), y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCB 17 (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCB 17 (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 0.7, y = 10^2.8,
-           label = expression(atop("Fox River (R"^2*"= 0.81)",
-                                   paste("t"[1/2]*" = 14 ± 3 (yr)"))),
-           size = 3, fontface = 2)
