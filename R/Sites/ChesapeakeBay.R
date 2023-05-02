@@ -374,13 +374,9 @@ write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(che.pcb.2) %in% df$names_to_remove)
-# Remove columns from che.pcb.2
+# Remove columns from che.pcb.2 with congeners that don't show normality
 che.pcb.3 <- che.pcb.2[, -cols_to_remove]
 
-
-# Remove congeners with no Normality from che.pcb.2
-che.pcb.3 <- select(che.pcb.2, -PCB20.21.28.31.33.50.53, -PCB40.41.64.71.72,
-                    -PCB61.66.70.74.76.93.95.98.100.102, -PCB180.193)
 # Create matrix to store results
 lme.fit.pcb <- matrix(nrow = length(che.pcb.3[,1]),
                       ncol = length(che.pcb.3[1,]))
