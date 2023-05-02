@@ -362,12 +362,22 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
+# Get the congeners that are not showing normality
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
 
 # Generate predictions
+# Select congeners that are not showing normality to be remove from che.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(che.pcb.2) %in% df$names_to_remove)
+# Remove columns from che.pcb.2
+che.pcb.3 <- che.pcb.2[, -cols_to_remove]
+
+
 # Remove congeners with no Normality from che.pcb.2
 che.pcb.3 <- select(che.pcb.2, -PCB20.21.28.31.33.50.53, -PCB40.41.64.71.72,
                     -PCB61.66.70.74.76.93.95.98.100.102, -PCB180.193)
