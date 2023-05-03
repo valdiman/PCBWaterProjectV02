@@ -338,3 +338,5 @@ kal.tpcb.2$factor2 <- kal.tpcb.2$tPCB/kal.tpcb.2$predicted
 factor2.tpcb <- nrow(kal.tpcb.2[kal.tpcb.2$factor2 > 0.5 & kal.tpcb.2$factor2 < 2,
                                 ])/length(kal.tpcb.2[,1])*100
 
+
+
