@@ -427,6 +427,9 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
 # Use hud.1 (no 0s samples)
 # Prepare data.frame
 {
+  # Remove samples (rows) with total PCBs  = 0
+  hud.1 <- hud.0[!(rowSums(hud.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Remove metadata
   hud.pcb <- subset(hud.1, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
   hud.pcb <- subset(hud.pcb, select = -c(A1016:A1260))
@@ -444,10 +447,11 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
   # Change date format
   hud.pcb.1$SampleDate <- as.Date(hud.1$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  hud.pcb.1$time <- as.Date(hud.1$SampleDate) - min(as.Date(hud.1$SampleDate))
+  hud.pcb.1$time <- as.Date(hud.pcb.1$SampleDate) - min(as.Date(hud.pcb.1$SampleDate))
   # Create individual code for each site sampled
   hud.pcb.1$site.numb <- hud.1$SiteID %>% as.factor() %>% as.numeric
   # Include season
+  yq.s <- as.yearqtr(as.yearmon(hud.1$SampleDate, "%m/%d/%Y") + 1/12)
   hud.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   ## Remove site Bakers Falls. Upstream source
@@ -476,7 +480,7 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
                        min(hud.pcb.1$SampleDate), max(hud.pcb.1$SampleDate))
   # Water temperature in Celsius
   temp <- readNWISdv(sitehudN5, paramtemp,
-                     min(hud.pcb.1$date), max(hud.pcb.1$date))
+                     min(hud.pcb.1$SampleDate), max(hud.pcb.1$SampleDate))
   
   # Add USGS data to hud.tpcb.2, matching dates
   hud.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(hud.pcb.1$SampleDate,
@@ -487,28 +491,29 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
                                                        flow.3$Date)]
   hud.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(hud.pcb.1$SampleDate,
                                                        flow.4$Date)]
-  hud.tpcb.1$temp <- 273.15 + temp$X_00010_00003[match(hud.tpcb.1$SampleDate,
+  hud.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(hud.pcb.1$SampleDate,
                                                        temp$Date)]
   # Remove samples with temperature = NA
-  hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$temp), ]
+  hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.3), ]
   # Remove metadata
-  hud.pcb.3 <- subset(hud.pcb.2, select = -c(SiteID:temp))
+  hud.pcb.3 <- subset(hud.pcb.1, select = -c(SiteID:temp))
+  hud.pcb.4 <- subset(hud.pcb.2, select = -c(SiteID:temp))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- hud.pcb.2$time
-flow <- hud.pcb.2$flow
+flow <- hud.pcb.2$flow.3 # Don't use flow 3. For flow 3, use hud.pcb.2
 temper <- hud.pcb.2$temp
 season <- hud.pcb.2$season
 site <- hud.pcb.2$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(hud.pcb.3[1,]), ncol = 24)
+lme.pcb <- matrix(nrow = length(hud.pcb.4[1,]), ncol = 24)
 
 # Perform LME
-for (i in 1:length(hud.pcb.3[1,])) {
-  fit <- lmer(hud.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+for (i in 1:length(hud.pcb.4[1,])) {
+  fit <- lmer(hud.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -560,22 +565,22 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/hudRiverLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/HudsonRiverLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from che.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
-cols_to_remove <- which(names(hud.pcb.3) %in% df$names_to_remove)
+cols_to_remove <- which(names(hud.pcb.4) %in% df$names_to_remove)
 # Remove columns from che.pcb.2 with congeners that don't show normality
-hud.pcb.4 <- hud.pcb.3[, -cols_to_remove]
+hud.pcb.5 <- hud.pcb.4[, -cols_to_remove]
 
 # Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(hud.pcb.4[,1]),
-                      ncol = length(hud.pcb.4[1,]))
+lme.fit.pcb <- matrix(nrow = length(hud.pcb.5[,1]),
+                      ncol = length(hud.pcb.5[1,]))
 
-for (i in 1:length(hud.pcb.4[1,])) {
-  fit <- lmer(hud.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
+for (i in 1:length(hud.pcb.5[1,])) {
+  fit <- lmer(hud.pcb.5[,i] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -585,7 +590,7 @@ for (i in 1:length(hud.pcb.4[1,])) {
 }
 
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(hud.pcb.4)/10^(lme.fit.pcb)
+factor2 <- 10^(hud.pcb.5)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
@@ -593,9 +598,9 @@ factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
 # Add congener names to lme.fit.pcb columns
-colnames(lme.fit.pcb) <- colnames(hud.pcb.4)
+colnames(lme.fit.pcb) <- colnames(hud.pcb.5)
 # Add code number to first column
-df1 <- cbind(code = row.names(hud.pcb.4), hud.pcb.4)
+df1 <- cbind(code = row.names(hud.pcb.5), hud.pcb.5)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
 # Loop over all pairs of columns
@@ -604,16 +609,16 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.5, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.5, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^0.1, y = 10^3.5,
+    annotate('text', x = 10^0.5, y = 10^4.5,
              label = paste(names(df1)[i]),
              size = 3, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
