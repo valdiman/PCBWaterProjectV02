@@ -149,7 +149,6 @@ ggplot(hou.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   siteHouN2 <- "01197500" # HOUSATONIC RIVER NEAR GREAT BARRINGTON, MA
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
-  # paramtemp <- "00010" # water temperature, C No data available
   # Retrieve USGS data
   flow.1 <- readNWISdv(siteHouN1, paramflow,
                        min(hou.tpcb$date), max(hou.tpcb$date))
@@ -169,7 +168,7 @@ tpcb <- hou.tpcb$tPCB
 time <- hou.tpcb$time
 site <- hou.tpcb$site.code
 season <- hou.tpcb$season
-flow <- hou.tpcb$flow.2
+flow <- hou.tpcb$flow.1
 # tPCB vs. time + season + flow + site
 lme.hou.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + season + flow + (1|site),
                   REML = FALSE,
@@ -193,7 +192,7 @@ summary(lme.hou.tpcb)
 }
 # Shapiro test
 shapiro.test(res.hou.tpcb)
-# Lme does not provide a good model. Not more to do here.
+# Lme does not provide a good model.
 
 # Selected sites ----------------------------------------------------------
 ## Due to many dredging operations and issues with data
@@ -243,6 +242,7 @@ ggplot(hou.tpcb.8, aes(y = tPCB,
            size = 3)
 
 # tPCB Regressions --------------------------------------------------------
+# Both sites
 # MLR tPCB vs. time + season + flow
 mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
                    data = hou.tpcb.8)
@@ -262,4 +262,25 @@ summary(mlr.hou.tpcb)
 
 # Shapiro test
 shapiro.test(res.hou.tpcb)
-# Lme does predict a good model.
+
+mlr.hou.tpcb <- lm(log10(tPCB) ~ time + season + flow.2,
+                   data = hou.tpcb.20)
+# See results
+summary(mlr.hou.tpcb)
+# Look at residuals
+{
+  res.hou.tpcb <- resid(mlr.hou.tpcb) # get list of residuals
+  # Create Q-Q plot for residuals
+  qqnorm(res.hou.tpcb, main = "log10(C)")
+  qqnorm(res.hou.tpcb,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
+  # Add a straight diagonal line to the plot
+  qqline(res.hou.tpcb)
+}
+
+# Shapiro test
+shapiro.test(res.hou.tpcb)
+
+# Neither sites yielded a good result using the mlr model
+
