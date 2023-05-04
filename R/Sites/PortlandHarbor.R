@@ -140,9 +140,6 @@ ggplot(por.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   annotate("text", x = 3, y = 10^3.7, label = "Portland Harbor",
            size = 3)
 
-# Remove site -------------------------------------------------------------
-# ?
-
 # Include USGS flow data --------------------------------------------------
 {
   # Include flow data from USGS station Portland Harbor
@@ -236,8 +233,10 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandRiverLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandHarborLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -285,50 +284,6 @@ por.tpcb.2$factor2 <- por.tpcb.2$tPCB/por.tpcb.2$predicted
 factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 2,
                                 ])/length(por.tpcb.2[,1])*100
 
-# Plot time series with lme predictions
-# Create a data frame to storage data
-{
-  time.serie.tpcb <- as.data.frame(matrix(nrow = length(por.tpcb.2[,1]),
-                                          ncol = 3))
-  # Add name to columns
-  colnames(time.serie.tpcb) <- c('date', 'tPCB', 'lmetPCB')
-  # Add data
-  time.serie.tpcb$date <- por.tpcb.2$date
-  time.serie.tpcb$tPCB <- por.tpcb.2$tPCB
-  time.serie.tpcb$lmetPCB <- 10^(fit.lme.values.por.tpcb)
-  # Change again the names
-  colnames(time.serie.tpcb[,3]) <- c("lmetPCB")
-  # Change data.frame format to be plotted
-  time.serie.tpcb.2 <- melt(time.serie.tpcb, id.vars = c("date"))
-}
-# Plot
-ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 10^3.8, label = "Portland Harbor", size = 3.5)
-
 # Individual PCB Analysis -------------------------------------------------
 # Use por.1 (no 0s samples)
 # Prepare data.frame
@@ -364,26 +319,29 @@ ggplot(time.serie.tpcb.2, aes(x = date, y = value, group = variable)) +
   paramtemp <- "00010" # water temperature, C Not available
   # Flow (ft3/s)
   flow.1 <- readNWISdv(sitePorN1, paramflow,
-                       min(por.pcb.1$date), max(por.pcb.1$date))
+                       min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
   flow.2 <- readNWISdv(sitePorN2, paramflow,
-                       min(por.pcb.1$date), max(por.pcb.1$date))
+                       min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
   temp.1 <- readNWISdv(sitePorN1, paramtemp,
-                       min(por.pcb.1$date), max(por.pcb.1$date))
-  # Add USGS data to por.tpcb, matching dates, conversion to m3/s
-  por.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(por.pcb.1$date, flow.1$Date)]
-  por.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.pcb.1$date, flow.2$Date)]
-  por.pcb.1$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$date, temp.1$Date)]
-  # Remove samples with temperature = NA
-  por.pcb.2 <- por.pcb.1[!is.na(por.pcb.1$temp), ]
+                       min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
+  # Add USGS data to por.pcb.1, matching dates
+  por.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(por.pcb.1$SampleDate,
+                                                     flow.1$Date)]
+  por.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.pcb.1$SampleDate,
+                                                     flow.2$Date)]
+  por.pcb.1$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$SampleDate,
+                                                         temp.1$Date)]
+  # Remove samples with temp = NA
+  por.pcb.2 <- subset(por.pcb.1, !is.na(temp.1))
   # Remove metadata
-  por.pcb.3 <- subset(por.pcb.2, select = -c(SiteID:temp))
+  por.pcb.3 <- subset(por.pcb.2, select = -c(SiteID:temp.1))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- por.pcb.2$time
-flow <- por.pcb.2$flow
-temper <- por.pcb.2$temp
+flow <- por.pcb.2$flow.1
+temper <- por.pcb.2$temp.1
 season <- por.pcb.2$season
 site <- por.pcb.2$site.numb
 
@@ -427,7 +385,7 @@ for (i in 1:length(por.pcb.3[1,])) {
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 # Add congener names
 congeners <- colnames(por.pcb.3)
-lme.pcb <- cbind(congeners, lme.pcb)
+lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
@@ -436,17 +394,30 @@ colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+# Remove congeners with no normal distribution
+# Shapiro test p-value < 0.05
+lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
+# Get the congeners that are not showing normality
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
+lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/csv/LmePorPCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/PortlandHarborLmePCB.csv")
 
 # Generate predictions
-# Create matrix to store results
-lme.fit.pcb <- matrix(nrow = length(por.pcb.3[,1]),
-                      ncol = length(por.pcb.3[1,]))
+# Select congeners that are not showing normality to be remove from por.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(por.pcb.3) %in% df$names_to_remove)
+# Remove columns from che.pcb.2 with congeners that don't show normality
+por.pcb.4 <- por.pcb.3[, -cols_to_remove]
 
-for (i in 1:length(por.pcb.3[1,])) {
-  fit <- lmer(por.pcb.3[,i] ~ 1 + time + flow + temper + season + (1|site),
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(por.pcb.4[,1]),
+                      ncol = length(por.pcb.4[1,]))
+
+for (i in 1:length(por.pcb.4[1,])) {
+  fit <- lmer(por.pcb.4[,i] ~ 1 + time + flow + temper + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -456,121 +427,40 @@ for (i in 1:length(por.pcb.3[1,])) {
 }
 
 # Estimate a factor of 2 between observations and predictions
-factor2 <- 10^(por.pcb.3)/10^(lme.fit.pcb)
+factor2 <- 10^(por.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
-# Selected individual PCB regression --------------------------------------
-# lme
-lme.por.pcbi <- lmer(por.pcb.3$PCB17 ~ 1 + time + flow + temper + season +
-                       (1|site), REML = FALSE,
-                     control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                           check.nobs.vs.rankZ = "ignore",
-                                           check.nobs.vs.nRE="ignore"),
-                     na.action = na.exclude)
+# Plot 1:1 for all congeners
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb columns
+colnames(lme.fit.pcb) <- colnames(por.pcb.4)
+# Add code number to first column
+df1 <- cbind(code = row.names(por.pcb.4), por.pcb.4)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# See results
-summary(lme.por.pcbi)
-# Look at residuals
-{
-  res.lme.por.pcbi <- resid(lme.por.pcbi) # get list of residuals
-  # Create Q-Q plot for residuals
-  qqnorm(res.lme.por.pcbi, main = expression(paste("Normal Q-Q Plot PCB 17")))
-  # Add a straight diagonal line to the plot
-  qqline(res.lme.por.pcbi)
+# Loop over all pairs of columns
+for (i in 2:length(df1)) {
+  # create plot for each pair of columns
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.001, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.001, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 10^0.005, y = 10^3.4,
+             label = paste(names(df1)[i]),
+             size = 3, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
+  # print plot
+  print(p)
 }
-# Shapiro test
-shapiro.test(res.lme.por.pcbi)
-# Extract R2 no random effect
-R2.nre <- as.data.frame(r.squaredGLMM(lme.por.pcbi))[1, 'R2m']
-# Extract R2 with random effect
-R2.re <- as.data.frame(r.squaredGLMM(lme.por.pcbi))[1, 'R2c']
-# Extract coefficient values
-time.coeff <- summary(lme.por.pcbi)$coef[2, "Estimate"]
-time.coeff.ste <- summary(lme.por.pcbi)$coef[2, "Std. Error"]
-# Calculate half-life tPCB in yr (-log(2)/slope/365)
-t0.5 <- -log(2)/time.coeff/365 # half-life tPCB in yr = -ln(2)/slope/365
-# Calculate error
-t0.5.error <- abs(t0.5)*time.coeff.ste/abs(time.coeff)
-
-# (1) Get predicted values pcbi
-date.pcbi <- format(por.pcb.2$SampleDate, "%Y-%m-%d")
-obs <- por.pcb.3$PCB17
-por.pcbi <- cbind(date.pcbi, obs)
-fit.lme.values.pcbi <- as.data.frame(fitted(lme.por.pcbi))
-por.pcbi <- cbind(por.pcbi, fit.lme.values.pcbi)
-colnames(por.pcbi) <- c("date", "obs", 'lme')
-por.pcbi$date <- as.Date(por.pcbi$date)
-por.pcbi$obs <- as.numeric(por.pcbi$obs)
-
-# Plot residuals vs. predictions
-{
-  plot(por.pcbi$lme, res.lme.por.pcbi,
-       points(por.pcbi$lme, res.lme.por.pcbi, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted concentration PCB 17 (pg/L)")),
-       ylab = "Residual (lme)")
-  abline(0, 0)
-  abline(h = seq(-2, 2, 1), col = "grey")
-  abline(v = seq(0.5, 2, 0.5), col = "grey")
-}
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.por.pcbi <- as.data.frame(fitted(lme.por.pcbi))
-# Add column name
-colnames(fit.lme.values.por.pcbi) <- c("predicted")
-# Add predicted values to data.frame
-por.pcb.3$predicted <- 10^(fit.lme.values.por.pcbi$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-ggplot(por.pcb.3, aes(x = 10^(PCB17), y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 1000), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration PCB 17 (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration PCB 17 (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 0.7, y = 10^2.8,
-           label = expression(atop("Portland Harbor (R"^2*"= 0.81)",
-                                   paste("t"[1/2]*" = 14 ± 3"))),
-           size = 3, fontface = 2)
-
-# Modeling plots
-# Change data.frame format to be plotted
-por.pcbi.2 <- melt(por.pcbi, id.vars = c("date"))
-# Plot
-ggplot(por.pcbi.2, aes(x = date, y = 10^(value), group = variable)) +
-  geom_point(aes(shape = variable, color = variable, size = variable,
-                 fill = variable)) +
-  scale_shape_manual(values = c(21, 3)) +
-  scale_color_manual(values = c('black','#8856a7')) +
-  scale_size_manual(values = c(2, 1)) +
-  scale_fill_manual(values = c("#1b98e0", '#8856a7')) +
-  scale_x_date(labels = date_format("%Y-%m")) +
-  scale_y_log10(limits = c(1, 1000)) +
-  xlab("") +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste("PCB 17 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  annotation_logticks(sides = "l",
-                      short = unit(0.5, "mm"),
-                      mid = unit(1.5, "mm"),
-                      long = unit(2, "mm")) +
-  annotate("text", x = as.Date("2018-06-01", format = "%Y-%m-%d"),
-           y = 850, label = "Portland Harbor", size = 3.5)
-
