@@ -331,8 +331,8 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
                                                      flow.2$Date)]
   por.pcb.1$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$SampleDate,
                                                          temp.1$Date)]
-  # Remove samples with temp = NA
-  por.pcb.2 <- subset(por.pcb.1, !is.na(temp.1))
+  # Remove samples with temp.1 = NA
+  por.pcb.2 <- por.pcb.1[!is.na(por.pcb.1$temp.1), ]
   # Remove metadata
   por.pcb.3 <- subset(por.pcb.2, select = -c(SiteID:temp.1))
 }
