@@ -51,6 +51,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 # Select nbh River data ---------------------------------------------------
 nbh.0 <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
 
+
 # Data preparation --------------------------------------------------------
 {
   # Remove samples (rows) with total PCBs  = 0
@@ -314,7 +315,7 @@ factor2.tpcb <- nrow(nbh.tpcb.1[nbh.tpcb.1$factor2 > 0.5 & nbh.tpcb.1$factor2 < 
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
   nbh.pcb.1 <- nbh.pcb[,
-                       -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.1)]
+                       -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.7)]
   # Add site ID
   nbh.pcb.1$SiteID <- nbh.1$SiteID
   # Change date format
@@ -330,25 +331,16 @@ factor2.tpcb <- nrow(nbh.tpcb.1[nbh.tpcb.1$factor2 > 0.5 & nbh.tpcb.1$factor2 < 
   nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season))
 }
 
+# LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- nbh.pcb.1$time
 season <- nbh.pcb.1$season
 site <- nbh.pcb.1$site.numb
 
-# LME for individual PCBs -------------------------------------------------
 # Create matrix to store results
 lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 21)
 
 # Perform LME
-
-fit <- lmer(nbh.pcb.2$PCB44.47.65 ~ 1 + time + season + (1|site),
-            REML = FALSE,
-            control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                  check.nobs.vs.rankZ = "ignore",
-                                  check.nobs.vs.nRE="ignore"))
-
-summary(fit)
-
 for (i in 1:length(nbh.pcb.2[1,])) {
   fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
@@ -364,12 +356,12 @@ for (i in 1:length(nbh.pcb.2[1,])) {
   lme.pcb[i,7] <- fixef(fit)[3] # season 1
   lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
   lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  lme.pcb[i,10] <- fixef(fit)[4] # season 2
-  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
-  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.pcb[i,13] <- fixef(fit)[5] # season 3
-  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
-  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  #lme.pcb[i,10] <- fixef(fit)[4] # season 2
+  #lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
+  #lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  #lme.pcb[i,13] <- fixef(fit)[5] # season 3
+  #lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
+  #lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
   lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
   lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
   lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
@@ -378,17 +370,103 @@ for (i in 1:length(nbh.pcb.2[1,])) {
   lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
 }
 
+# Problem with seasons
+# Need to run individual congeners
+fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
+            REML = FALSE,
+            control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"))
+summary(fit)
+
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
 # Add congener names
 congeners <- colnames(nbh.pcb.2)
-lme.pcb <- cbind(congeners, lme.pcb)
+lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
+                       "season1", "season1.error", "season1, pv",
                        "season2", "season2.error", "season2, pv", "season3",
                        "season3.error", "season3.pv", "t05", "t05.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+# Remove congeners with no normal distribution
+# Shapiro test p-value < 0.05
+lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
+# Get the congeners that are not showing normality
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
+lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/csv/LmenbhPCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/NBHLmenPCB.csv")
+
+# Generate predictions
+# Select congeners that are not showing normality to be remove from che.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(nbh.pcb.2) %in% df$names_to_remove)
+# Remove columns from che.pcb.2 with congeners that don't show normality
+nbh.pcb.3 <- nbh.pcb.2[, -cols_to_remove]
+
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(nbh.pcb.3[,1]),
+                      ncol = length(nbh.pcb.3[1,]))
+
+for (i in 1:length(nbh.pcb.3[1,])) {
+  fit <- lmer(nbh.pcb.3[,i] ~ 1 + time + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  lme.fit.pcb[,i] <- fitted(fit)
+}
+
+# Estimate a factor of 2 between observations and predictions
+factor2 <- 10^(nbh.pcb.3)/10^(lme.fit.pcb)
+factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
+                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Plot 1:1 for all congeners
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb columns
+colnames(lme.fit.pcb) <- colnames(nbh.pcb.3)
+# Add code number to first column
+df1 <- cbind(code = row.names(nbh.pcb.3), nbh.pcb.3)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
+
+# Loop over all pairs of columns
+for (i in 2:length(df1)) {
+  # create plot for each pair of columns
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.1, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.1, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 10^0.5, y = 10^3.5,
+             label = paste(names(df1)[i]),
+             size = 3, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
+  # print plot
+  print(p)
+}
+
+fit <- lmer(nbh.pcb.2[,18] ~ 1 + time + season + (1|site),
+            REML = FALSE,
+            control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                  check.nobs.vs.rankZ = "ignore",
+                                  check.nobs.vs.nRE="ignore"))
+
+summary(fit)
+
