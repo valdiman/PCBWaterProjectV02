@@ -235,11 +235,11 @@ ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
 # Get variables
 tpcb <- spo.tpcb.2$tPCB
 time <- spo.tpcb.2$time
+flow <- spo.tpcb.2$flow.4 # use flow 4
 site <- spo.tpcb.2$site.code
 season <- spo.tpcb.2$season
-flow <- spo.tpcb.2$flow.4 # use flow 4
 # tPCB vs. time + season + flow + temp + site
-lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
+lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
                      REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                            check.nobs.vs.rankZ = "ignore",
