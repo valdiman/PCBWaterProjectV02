@@ -371,7 +371,7 @@ for (i in 1:length(nbh.pcb.2[1,])) {
 }
 
 # Problem with seasons
-# Need to run individual congeners
+# Need to run individual congeners, but only the ones that show normality.
 fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
             REML = FALSE,
             control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -461,12 +461,3 @@ for (i in 2:length(df1)) {
   # print plot
   print(p)
 }
-
-fit <- lmer(nbh.pcb.2[,18] ~ 1 + time + season + (1|site),
-            REML = FALSE,
-            control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                  check.nobs.vs.rankZ = "ignore",
-                                  check.nobs.vs.nRE="ignore"))
-
-summary(fit)
-
