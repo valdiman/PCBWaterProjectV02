@@ -146,7 +146,6 @@ ggplot(spo.tpcb, aes(x = factor(SiteID), y = tPCB)) +
   siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
   siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
   siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
-  siteSpoN5 <- "12422000"
   # Codes to retrieve data
   paramflow <- "00060" # discharge, ft3/s
   #paramtemp <- "00010" # water temperature, C No data
@@ -345,5 +344,194 @@ ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
 spo.tpcb.2$factor2 <- spo.tpcb.2$tPCB/spo.tpcb.2$predicted.1
 factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 2,
                                 ])/length(spo.tpcb.2[,1])*100
+
+# Individual PCB Analysis -------------------------------------------------
+# Use spo.1 (no 0s samples)
+# Prepare data.frame
+{
+  spo.pcb <- subset(spo.1, select = -c(SampleID:AroclorCongener))
+  # Remove Aroclor data
+  spo.pcb <- subset(spo.pcb, select = -c(A1016:A1260))
+  # Log10 individual PCBs 
+  spo.pcb <- log10(spo.pcb)
+  # Replace -inf to NA
+  spo.pcb <- do.call(data.frame,
+                     lapply(spo.pcb,
+                            function(x) replace(x, is.infinite(x), NA)))
+  # Remove individual PCB that have 30% or less NA values
+  spo.pcb.1 <- spo.pcb[, colMeans(!is.na(spo.pcb)) >= 0.7]
+  # Add site ID
+  spo.pcb.1$SiteID <- spo.1$SiteID
+  # Change date format
+  spo.pcb.1$SampleDate <- as.Date(spo.1$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  spo.pcb.1$time <- as.Date(spo.1$SampleDate) - min(as.Date(spo.1$SampleDate))
+  # Create individual code for each site sampled
+  spo.pcb.1$site.numb <- spo.1$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  spo.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Include flow data from USGS station
+  siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
+  siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
+  siteSpoN3 <- "12422500" # Spokane River at Spokane, WA
+  siteSpoN4 <- "12424000" # Hangman Creek at Spokane, WA
+  # Codes to retrieve data
+  paramflow <- "00060" # discharge, ft3/s
+  #paramtemp <- "00010" # water temperature, C No data
+  # Retrieve USGS data
+  flow.1 <- readNWISdv(siteSpoN1, paramflow,
+                       min(spo.pcb.1$SampleDate), max(spo.pcb.1$SampleDate))
+  flow.2 <- readNWISdv(siteSpoN2, paramflow,
+                       min(spo.pcb.1$SampleDate), max(spo.pcb.1$SampleDate))
+  flow.3 <- readNWISdv(siteSpoN3, paramflow,
+                       min(spo.pcb.1$SampleDate), max(spo.pcb.1$SampleDate))
+  flow.4 <- readNWISdv(siteSpoN4, paramflow,
+                       min(spo.pcb.1$SampleDate), max(spo.pcb.1$SampleDate))
+  
+  # Add USGS data to spo.pcb.1, matching dates
+  spo.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(spo.pcb.1$SampleDate,
+                                                     flow.1$Date)]
+  spo.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(spo.pcb.1$SampleDate,
+                                                     flow.2$Date)]
+  spo.pcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(spo.pcb.1$SampleDate,
+                                                     flow.3$Date)]
+  spo.pcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(spo.pcb.1$SampleDate,
+                                                     flow.4$Date)]
+  # Sample sites not located at the Spokane River
+  spo.pcb.2 <- subset(spo.pcb.1, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR005")) # Regional WRF
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
+  spo.pcb.2 <- subset(spo.pcb.2, SiteID != c("WCPCB-SPR015")) # Hagman Creek
+  # Remove metadata
+  spo.pcb.3 <- subset(spo.pcb.2, select = -c(SiteID:flow.4))
+}
+
+# LME for individual PCBs -------------------------------------------------
+# Get covariates
+time <- spo.pcb.2$time
+flow <- spo.pcb.2$flow.4
+season <- spo.pcb.2$season
+site <- spo.pcb.2$site.numb
+
+# Create matrix to store results
+lme.pcb <- matrix(nrow = length(spo.pcb.3[1,]), ncol = 21)
+
+# Perform LME
+for (i in 1:length(spo.pcb.3[1,])) {
+  fit <- lmer(spo.pcb.3[,i] ~ 1 + time + flow + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"))
+  lme.pcb[i,1] <- fixef(fit)[1] # intercept
+  lme.pcb[i,2] <- summary(fit)$coef[1,"Std. Error"] # intercept error
+  lme.pcb[i,3] <- summary(fit)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.pcb[i,4] <- fixef(fit)[2] # time
+  lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
+  lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.pcb[i,7] <- fixef(fit)[3] # flow
+  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # flow error
+  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # flow p-value
+  lme.pcb[i,10] <- fixef(fit)[4] # season 2
+  lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
+  lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.pcb[i,13] <- fixef(fit)[5] # season 3
+  lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
+  lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+}
+
+# Just 3 significant figures
+lme.pcb <- formatC(signif(lme.pcb, digits = 3))
+# Add congener names
+congeners <- colnames(spo.pcb.3)
+lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
+# Add column names
+colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
+                       "Intercept.pv", "time", "time.error", "time.pv",
+                       "flow", "flow.error", "flow.pv", "season2",
+                       "season2.error", "season2, pv", "season3",
+                       "season3.error", "season3.pv", "t05", "t05.error",
+                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+# Remove congeners with no normal distribution
+# Shapiro test p-value < 0.05
+lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
+# Get the congeners that are not showing normality
+lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
+lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
+
+# Export results
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/SpokaneRiverLmePCB.csv")
+
+# Generate predictions
+# Select congeners that are not showing normality to be remove from spo.pcb.2
+df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
+# Get column indices to remove
+cols_to_remove <- which(names(spo.pcb.3) %in% df$names_to_remove)
+# Remove columns from che.pcb.2 with congeners that don't show normality
+spo.pcb.4 <- spo.pcb.3[, -cols_to_remove]
+
+# Create matrix to store results
+lme.fit.pcb <- matrix(nrow = length(spo.pcb.4[,1]),
+                      ncol = length(spo.pcb.4[1,]))
+
+for (i in 1:length(spo.pcb.4[1,])) {
+  fit <- lmer(spo.pcb.4[,i] ~ 1 + time + flow + season + (1|site),
+              REML = FALSE,
+              control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                    check.nobs.vs.rankZ = "ignore",
+                                    check.nobs.vs.nRE="ignore"),
+              na.action = na.exclude)
+  lme.fit.pcb[,i] <- fitted(fit)
+}
+
+# Estimate a factor of 2 between observations and predictions
+factor2 <- 10^(spo.pcb.4)/10^(lme.fit.pcb)
+factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
+                   na.rm = TRUE)/(sum(!is.na(factor2)))*100
+
+# Plot 1:1 for all congeners
+# Transform lme.fit.pcb to data.frame
+lme.fit.pcb <- as.data.frame(lme.fit.pcb)
+# Add congener names to lme.fit.pcb columns
+colnames(lme.fit.pcb) <- colnames(spo.pcb.4)
+# Add code number to first column
+df1 <- cbind(code = row.names(spo.pcb.4), spo.pcb.4)
+df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
+
+# Loop over all pairs of columns
+for (i in 2:length(df1)) {
+  # create plot for each pair of columns
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 10^0.1, y = 10^3.5,
+             label = paste(names(df1)[i]),
+             size = 3, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
+  # print plot
+  print(p)
+}
 
 
