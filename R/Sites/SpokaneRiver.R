@@ -515,16 +515,16 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.01, 10^2.8), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.01, 10^2.8), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^0.1, y = 10^3.5,
+    annotate('text', x = 10^0.1, y = 10^2.8,
              label = paste(names(df1)[i]),
              size = 3, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
