@@ -194,12 +194,14 @@ summary(lme.che.tpcb)
 {
   res.che.tpcb <- resid(lme.che.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.che.tpcb, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/ChesapeakeBayQ-QtPCB.pdf")
   qqnorm(res.che.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.che.tpcb)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -250,7 +252,7 @@ colnames(fit.lme.values.che.tpcb) <- c("predicted")
 che.tpcb.1$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
+p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -268,9 +270,16 @@ ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
            label = expression(atop(" Chesapeake Bay (R"^2*"= 0.49)",
                                    paste("t"[1/2]*" = 15 ± 4.6 (yr)"))),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/ChesapeakeBayObsPredtPCB.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/ChesapeakeBayResidualtPCB.pdf")
   plot(log10(che.tpcb.1$predicted), res.che.tpcb,
        points(log10(che.tpcb.1$predicted), res.che.tpcb, pch = 16, 
               col = "#66ccff"),
@@ -282,6 +291,7 @@ ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2, 5, 0.5), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
@@ -417,8 +427,13 @@ colnames(lme.fit.pcb) <- colnames(che.pcb.3)
 df1 <- cbind(code = row.names(che.pcb.3), che.pcb.3)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# Loop over all pairs of columns
 for (i in 2:length(df1)) {
+  col_name <- if (i == 1) {
+    ""  # leave the name empty for the first plot
+  } else {
+    names(df1)[i] # use the column name for other plots
+  }
+  
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
@@ -432,12 +447,11 @@ for (i in 2:length(df1)) {
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^1, y = 10^4,
-             label = paste(names(df1)[i]),
-             size = 3, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
-  # print plot
-  print(p)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
+             size = 3, fontface = 2)
+  # save plot
+  ggsave(paste0("Output/Plots/Sites/ObsPred/ChesapeakeBay/", col_name, ".pdf"), plot = p)
 }
