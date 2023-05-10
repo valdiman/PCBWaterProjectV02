@@ -243,7 +243,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/ChesapeakeLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -391,7 +391,7 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakeLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from che.pcb.2
@@ -420,6 +420,8 @@ factor2 <- 10^(che.pcb.3)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Individual PCB congener plots -------------------------------------------
+# (1)
 # Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
@@ -458,6 +460,7 @@ for (i in 2:length(df1)) {
   ggsave(paste0("Output/Plots/Sites/ObsPred/ChesapeakeBay/", col_name, ".pdf"), plot = p)
 }
 
+# (2)
 # All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
@@ -476,7 +479,8 @@ for (i in 2:length(df1)) {
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
-    theme(aspect.ratio = 15/15) +
+    theme(aspect.ratio = 15/15, 
+          axis.title = element_text(size = 8)) +
     annotation_logticks(sides = "bl") +
     annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
@@ -492,3 +496,58 @@ combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/combined_plot.pdf", combined_plot,
        width = 15, height = 15)
 
+# (3)
+# Create a list to store all the cleaned data frames
+cleaned_df_list <- list()
+# Loop over the columns of df1 and df2
+for (i in 2:length(df1)) {
+  # Create a new data frame by binding the columns of df1 and df2 for each pair of columns
+  df_pair <- cbind(df1[,1], df1[,i], df2[,i])
+  colnames(df_pair) <- c("code", "observed", "predicted")
+  # Remove the rows with missing values
+  cleaned_df_pair <- na.omit(df_pair)
+  # Add the cleaned data frame to the list
+  cleaned_df_list[[i-1]] <- cleaned_df_pair
+}
+
+{
+  # Modify data to be plotted
+  # Combine all the cleaned data frames using rbind
+  combined_cleaned_df <- do.call(rbind, cleaned_df_list)
+  # Convert the matrix to a data frame
+  combined_cleaned_df <- as.data.frame(combined_cleaned_df)
+  # Convert the code column to a factor
+  combined_cleaned_df$code <- as.factor(combined_cleaned_df$code)
+  # Convert the observed and predicted columns to numeric
+  combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
+}
+
+# Plot all the pairs together
+p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
+  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  scale_y_log10(limits = c(0.1, 10^5), 
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(0.1, 10^5), 
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+  theme_bw() +
+  theme(aspect.ratio = 15/15, 
+        axis.title = element_text(size = 10)) +
+  annotation_logticks(sides = "bl") +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  annotate("text", x = 5, y = 10^4.5,
+           label = expression(atop("Chesapeake Bay",
+                                   paste("21 PCB congeners (n = 1090)"))),
+           size = 3.3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredPCB.pdf",
+       plot = p, device = "pdf")
+
+         
