@@ -15,6 +15,7 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
+install.packages('patchwork')
 
 # Load libraries
 {
@@ -31,6 +32,7 @@ install.packages("tidyr")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(tidyr) # function gather
+  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
@@ -455,3 +457,38 @@ for (i in 2:length(df1)) {
   # save plot
   ggsave(paste0("Output/Plots/Sites/ObsPred/ChesapeakeBay/", col_name, ".pdf"), plot = p)
 }
+
+# All plots in one page
+# Create a list to store all the plots
+plot_list <- list()
+
+# Loop over the columns of df1 and df2
+for (i in 2:length(df1)) {
+  col_name <- paste(names(df1)[i], sep = "")  # use the column name for plot title
+  # Create plot for each pair of columns and add to plot_list
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
+             size = 2.5, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+  
+  plot_list[[i-1]] <- p  # add plot to list
+}
+# Combine all the plots using patchwork
+combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
+# Save the combined plot
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/combined_plot.pdf", combined_plot,
+       width = 15, height = 15)
+
