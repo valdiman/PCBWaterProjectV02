@@ -184,7 +184,6 @@ summary(lme.hou.tpcb)
 {
   res.hou.tpcb <- resid(lme.hou.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.hou.tpcb, main = "log10(C)")
   qqnorm(res.hou.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
@@ -216,12 +215,14 @@ summary(lme.hou.tpcb.1)
 {
   res.hou.tpcb.1 <- resid(lme.hou.tpcb.1) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.hou.tpcb.1, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/HousatonicRiverQ-QtPCBV01.pdf")
   qqnorm(res.hou.tpcb.1,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.hou.tpcb.1)
+  dev.off()
 }
 # Create matrix to store results
 {
@@ -244,7 +245,7 @@ summary(lme.hou.tpcb.1)
   lme.tpcb.1[16] <- fixef(lme.hou.tpcb.1)[6] # season 3
   lme.tpcb.1[17] <- summary(lme.hou.tpcb.1)$coef[6,"Std. Error"] # season 3 error
   lme.tpcb.1[18] <- summary(lme.hou.tpcb.1)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb.1[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb.1[19] <- -log(2)/lme.tpcb.1[4]/365 # t0.5
   lme.tpcb.1[20] <- abs(-log(2)/lme.tpcb.1[4]/365)*lme.tpcb.1[5]/abs(lme.tpcb.1[4]) # t0.5 error
   lme.tpcb.1[21] <- as.data.frame(VarCorr(lme.hou.tpcb.1))[1,'sdcor']
   lme.tpcb.1[22] <- as.data.frame(r.squaredGLMM(lme.hou.tpcb.1))[1, 'R2m']
@@ -275,7 +276,7 @@ colnames(fit.lme.values.hou.tpcb.1) <- c("predicted")
 hou.tpcb.1$predicted <- 10^(fit.lme.values.hou.tpcb.1$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb.1, aes(x = tPCB, y = predicted)) +
+p <- ggplot(hou.tpcb.1, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -292,9 +293,16 @@ ggplot(hou.tpcb.1, aes(x = tPCB, y = predicted)) +
   annotate('text', x = 50, y = 10^4.3,
            label = expression("Housatonic River (R"^2*"= 0.75)"),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/HousatonicRiver/HousatonicRiverObsPredtPCBV01.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/HousatonicRiverResidualtPCBV01.pdf")
   plot(log10(hou.tpcb.1$predicted), res.hou.tpcb.1,
        points(log10(hou.tpcb.1$predicted), res.hou.tpcb.1, pch = 16, 
               col = "#66ccff"),
@@ -305,6 +313,7 @@ ggplot(hou.tpcb.1, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2, 5, 0.5), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
@@ -333,12 +342,14 @@ summary(lme.hou.tpcb.2)
 {
   res.hou.tpcb.2 <- resid(lme.hou.tpcb.2) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.hou.tpcb.2, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/HousatonicRiverQ-QtPCBV02.pdf")
   qqnorm(res.hou.tpcb.2,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.hou.tpcb.2)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -393,11 +404,11 @@ colnames(fit.lme.values.hou.tpcb.2) <- c("predicted")
 hou.tpcb.2$predicted <- 10^(fit.lme.values.hou.tpcb.2$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb.2, aes(x = tPCB, y = predicted)) +
+p <- ggplot(hou.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10^2.6, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10^2.5, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
@@ -407,13 +418,20 @@ ggplot(hou.tpcb.2, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 500, y = 10^3.3,
+  annotate('text', x = 50, y = 10^4.3,
            label = expression(atop("Housatonic River (R"^2*"= 0.5)",
                                    paste("t"[1/2]*" = 175 ± 51 (yr)"))),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/HousatonicRiver/HousatonicRiverObsPredtPCBV02.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/HousatonicRiverResidualtPCBV02.pdf")
   plot(log10(hou.tpcb.2$predicted), res.hou.tpcb.2,
        points(log10(hou.tpcb.2$predicted), res.hou.tpcb.2, pch = 16, 
               col = "#66ccff"),
@@ -424,6 +442,7 @@ ggplot(hou.tpcb.2, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2.8, 3.5, 0.02), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
@@ -452,12 +471,14 @@ summary(lme.hou.tpcb.3)
 {
   res.hou.tpcb.3 <- resid(lme.hou.tpcb.3) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.hou.tpcb.3, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/HousatonicRiverQ-QtPCBV03.pdf")
   qqnorm(res.hou.tpcb.3,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.hou.tpcb.3)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -512,11 +533,11 @@ colnames(fit.lme.values.hou.tpcb.3) <- c("predicted")
 hou.tpcb.3$predicted <- 10^(fit.lme.values.hou.tpcb.3$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(hou.tpcb.3, aes(x = tPCB, y = predicted)) +
+p <- ggplot(hou.tpcb.3, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(50, 10^2.2), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(50, 10^2.2), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
@@ -526,13 +547,20 @@ ggplot(hou.tpcb.3, aes(x = tPCB, y = predicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
-  annotate('text', x = 65, y = 10^2.15,
+  annotate('text', x = 50, y = 10^4.3,
            label = expression(atop("Housatonic River (R"^2*"= 0.11)",
                                    paste("t"[1/2]*" = 624 ± 230 (yr)"))),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/HousatonicRiver/HousatonicRiverObsPredtPCBV03.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/HousatonicRiverResidualtPCBV03.pdf")
   plot(log10(hou.tpcb.3$predicted), res.hou.tpcb.3,
        points(log10(hou.tpcb.3$predicted), res.hou.tpcb.3, pch = 16, 
               col = "#66ccff"),
@@ -543,6 +571,7 @@ ggplot(hou.tpcb.3, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(1.92, 2, 0.01), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
