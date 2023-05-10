@@ -185,12 +185,15 @@ summary(lme.por.tpcb)
 {
   res.por.tpcb <- resid(lme.por.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/PortlandHarborQ-QtPCB.pdf")
   qqnorm(res.por.tpcb, main = "log10(C)")
   qqnorm(res.por.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.por.tpcb)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -233,8 +236,6 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Export results
 write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandHarborLmetPCB.csv")
 
@@ -264,6 +265,11 @@ ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
   annotate('text', x = 50, y = 10^4.4,
            label = expression("Portland Harbor (R"^2*"= 0.68)"),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarborObsPredtPCB.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
@@ -440,27 +446,66 @@ colnames(lme.fit.pcb) <- colnames(por.pcb.4)
 df1 <- cbind(code = row.names(por.pcb.4), por.pcb.4)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# Loop over all pairs of columns
 for (i in 2:length(df1)) {
+  col_name <- if (i == 1) {
+    ""  # leave the name empty for the first plot
+  } else {
+    names(df1)[i] # use the column name for other plots
+  }
+  
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.001, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.001, 10^3.4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^0.005, y = 10^3.4,
-             label = paste(names(df1)[i]),
-             size = 3, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
-  # print plot
-  print(p)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
+             size = 3, fontface = 2)
+  # save plot
+  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/", col_name, ".pdf"), plot = p)
 }
+
+# All plots in one page
+# Create a list to store all the plots
+plot_list <- list()
+
+# loop over the columns of df1 and df2
+for (i in 2:length(df1)) {
+  col_name <- paste(names(df1)[i], sep = "")  # use the column name for plot title
+  # create plot for each pair of columns and add to plot_list
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
+             size = 2.5, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+  
+  plot_list[[i-1]] <- p  # add plot to list
+}
+# Combine all the plots using patchwork
+combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
+# Save the combined plot
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/combined_plot.pdf", combined_plot,
+       width = 15, height = 15)
+
