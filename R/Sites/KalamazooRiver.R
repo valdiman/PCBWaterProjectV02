@@ -239,12 +239,14 @@ summary(lme.kal.tpcb)
 {
   res.kal.tpcb <- resid(lme.kal.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.kal.tpcb, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/KalamazooRiverQ-QtPCB.pdf")
   qqnorm(res.kal.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.kal.tpcb)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -299,7 +301,7 @@ colnames(fit.lme.values.kal.tpcb) <- c("predicted")
 kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
+p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -317,9 +319,16 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
            label = expression(atop("Kalamazoo River (R"^2*"= 0.97)",
                                    paste("t"[1/2]*" = 3 ± 0.1 (yr)"))),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCB.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/KalamazooRiverResidualtPCB.pdf")
   plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
        points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
               col = "#66ccff"),
@@ -331,6 +340,7 @@ ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(1, 6, 0.5), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
