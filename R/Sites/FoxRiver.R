@@ -261,12 +261,14 @@ summary(lme.fox.tpcb)
 {
   res.fox.tpcb <- resid(lme.fox.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.fox.tpcb, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/FoxRiverQ-QtPCB.pdf")
   qqnorm(res.fox.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.fox.tpcb)
+  dev.off()
 }
 
 # Create matrix to store results
@@ -321,7 +323,7 @@ colnames(fit.lme.values.fox.tpcb) <- c("predicted")
 fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
+p <- ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   geom_point(shape = 21, size = 3, fill = "#66ccff") +
   scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -339,9 +341,16 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
            label = expression(atop("Fox River (R"^2*"= 0.78)",
                               paste("t"[1/2]*" = 11 ± 2 (yr)"))),
            size = 3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/FoxRiverObsPredtPCB.pdf",
+       plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
 {
+  # Create pdf file
+  pdf("Output/Plots/Sites/Residual/FoxRiverResidualtPCB.pdf")
   plot(log10(fox.tpcb.2$predicted), res.fox.tpcb,
        points(log10(fox.tpcb.2$predicted), res.fox.tpcb, pch = 16, 
               col = "#66ccff"),
@@ -352,6 +361,7 @@ ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
   abline(v = seq(2, 3.5, 0.5), col = "grey")
+  dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
@@ -513,27 +523,66 @@ colnames(lme.fit.pcb) <- colnames(fox.pcb.4)
 df1 <- cbind(code = row.names(fox.pcb.4), fox.pcb.4)
 df2 <- cbind(code = row.names(lme.fit.pcb), lme.fit.pcb)
 
-# Loop over all pairs of columns
 for (i in 2:length(df1)) {
+  col_name <- if (i == 1) {
+    ""  # leave the name empty for the first plot
+  } else {
+    names(df1)[i] # use the column name for other plots
+  }
+  
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 10^0.1, y = 10^3.5,
-             label = paste(names(df1)[i]),
-             size = 3, fontface = 2) +
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) # 2:1 line (factor of 2)
-  # print plot
-  print(p)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
+             size = 3, fontface = 2)
+  # save plot
+  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/", col_name, ".pdf"), plot = p)
 }
+
+# All plots in one page
+# Create a list to store all the plots
+plot_list <- list()
+
+# loop over the columns of df1 and df2
+for (i in 2:length(df1)) {
+  col_name <- paste(names(df1)[i], sep = "")  # use the column name for plot title
+  # create plot for each pair of columns and add to plot_list
+  p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
+              aes(x = y1, y = y2)) +
+    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+                  labels = trans_format("log10", math_format(10^.x))) +
+    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    theme_bw() +
+    theme(aspect.ratio = 15/15) +
+    annotation_logticks(sides = "bl") +
+    annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
+             size = 2.5, fontface = 2) +
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+  
+  plot_list[[i-1]] <- p  # add plot to list
+}
+# Combine all the plots using patchwork
+combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
+# Save the combined plot
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/combined_plot.pdf", combined_plot,
+       width = 15, height = 15)
+
