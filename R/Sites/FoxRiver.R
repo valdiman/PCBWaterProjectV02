@@ -344,7 +344,7 @@ p <- ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/FoxRiverObsPredtPCB.pdf",
+ggsave(filename = "Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.pdf",
        plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
