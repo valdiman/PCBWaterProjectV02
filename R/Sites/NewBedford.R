@@ -27,6 +27,7 @@ install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
+install.packages('patchwork')
 
 # Load libraries
 {
@@ -42,6 +43,7 @@ install.packages("reshape")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
+  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
