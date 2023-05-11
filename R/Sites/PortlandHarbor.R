@@ -13,6 +13,7 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages('patchwork')
 
 # Load libraries
 {
@@ -28,6 +29,7 @@ install.packages("dataRetrieval")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
+  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
