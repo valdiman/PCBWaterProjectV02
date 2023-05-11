@@ -13,6 +13,7 @@ install.packages("MuMIn")
 install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
+install.packages('patchwork')
 
 # Load libraries
 {
@@ -28,6 +29,7 @@ install.packages("dataRetrieval")
   library(zoo) # yields seasons
   library(dataRetrieval) # read data from USGS
   library(reshape)
+  library(patchwork) # combine plots
 }
 
 # Read data ---------------------------------------------------------------
@@ -329,7 +331,7 @@ ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/SpokaneRiverObsPredtPCB.pdf",
+ggsave(filename = "Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.pdf",
        plot = p, device = "pdf")
 
 # Plot residuals vs. predictions
@@ -510,6 +512,8 @@ factor2 <- 10^(spo.pcb.4)/10^(lme.fit.pcb)
 factor2.pcb <- sum(factor2 > 0.5 & factor2 < 2,
                    na.rm = TRUE)/(sum(!is.na(factor2)))*100
 
+# Individual PCB congener plots -------------------------------------------
+# (1)
 # Plot 1:1 for all congeners
 # Transform lme.fit.pcb to data.frame
 lme.fit.pcb <- as.data.frame(lme.fit.pcb)
@@ -530,9 +534,9 @@ for (i in 2:length(df1)) {
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
     geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -542,12 +546,13 @@ for (i in 2:length(df1)) {
     geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
     geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
-    annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
+    annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
   ggsave(paste0("Output/Plots/Sites/ObsPred/SpokaneRiver/", col_name, ".pdf"), plot = p)
 }
 
+# (2)
 # All plots in one page
 # Create a list to store all the plots
 plot_list <- list()
@@ -558,27 +563,83 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    geom_point(shape = 21, size = 2, fill = "#66ccff") +
+    scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
-    ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+    xlab(expression(bold("Observed conc. PCBi (pg/L)"))) +
+    ylab(expression(bold("Predicted lme conc. PCBi (pg/L)"))) +
     theme_bw() +
-    theme(aspect.ratio = 15/15) +
+    theme(aspect.ratio = 15/15,
+          axis.title = element_text(size = 6),
+          axis.text = element_text(size = 6)) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
+    annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 0.8) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
-combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
+combined_plot <- wrap_plots(plotlist = plot_list, ncol = 7)
 # Save the combined plot
 ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/combined_plot.pdf", combined_plot,
        width = 15, height = 15)
+
+# (3)
+# Create a list to store all the cleaned data frames
+cleaned_df_list <- list()
+# Loop over the columns of df1 and df2
+for (i in 2:length(df1)) {
+  # Create a new data frame by binding the columns of df1 and df2 for each pair of columns
+  df_pair <- cbind(df1[,1], df1[,i], df2[,i])
+  colnames(df_pair) <- c("code", "observed", "predicted")
+  # Remove the rows with missing values
+  cleaned_df_pair <- na.omit(df_pair)
+  # Add the cleaned data frame to the list
+  cleaned_df_list[[i-1]] <- cleaned_df_pair
+}
+
+{
+  # Modify data to be plotted
+  # Combine all the cleaned data frames using rbind
+  combined_cleaned_df <- do.call(rbind, cleaned_df_list)
+  # Convert the matrix to a data frame
+  combined_cleaned_df <- as.data.frame(combined_cleaned_df)
+  # Convert the code column to a factor
+  combined_cleaned_df$code <- as.factor(combined_cleaned_df$code)
+  # Convert the observed and predicted columns to numeric
+  combined_cleaned_df[,2:3] <- apply(combined_cleaned_df[,2:3], 2, as.numeric)
+}
+
+# Plot all the pairs together
+p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
+  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  scale_y_log10(limits = c(0.01, 10^3), 
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(0.01, 10^3), 
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
+  theme_bw() +
+  theme(aspect.ratio = 15/15, 
+        axis.title = element_text(size = 10)) +
+  annotation_logticks(sides = "bl") +
+  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  annotate("text", x = 1, y = 10^2.7,
+           label = expression(atop("Spokane River",
+                                   paste("69 PCB congeners (n = 2967)"))),
+           size = 3.3, fontface = 2)
+# See plot
+print(p)
+# Save plot
+ggsave(filename = "Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredPCB.pdf",
+       plot = p, device = "pdf")
 
