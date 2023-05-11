@@ -265,7 +265,7 @@ colnames(lme.tpcb.1) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HousatonicLmetPCBV01.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicLmetPCBV01.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -393,7 +393,7 @@ colnames(lme.tpcb.2) <- c("Intercept", "Intercept.error",
                           "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HousatonicLmetPCBV02.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicLmetPCBV02.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -522,7 +522,7 @@ colnames(lme.tpcb.3) <- c("Intercept", "Intercept.error",
                           "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HousatonicLmetPCBV03.csv")
+write.csv(lme.tpcb.3, file = "Output/Data/Sites/csv/HousatonicRiver/HousatonicLmetPCBV03.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
