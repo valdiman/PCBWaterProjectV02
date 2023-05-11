@@ -290,7 +290,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/KalamazooLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/KalamazooRiver/KalamazooLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
