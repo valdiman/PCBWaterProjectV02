@@ -74,7 +74,8 @@ ui <- fluidPage(
     tableOutput("data"),
     plotOutput("plot", height = "300px", width = "700px"),
     cellWidths = c("35%", "65%")
-  )
+  ),
+  verbatimTextOutput("plot_text")
 )
 
 # Define the Shiny server
@@ -139,9 +140,24 @@ server <- function(input, output, session) {
           axis.text.x = element_text(angle = 90, hjust = 1),
           axis.text = element_text(size = 8)
         )
+      
+      # Check if y-values are too large for linear scale
+      max_value <- max(data_agg$tPCB)
+      if (max_value >= 50000) {
+        p <- p + scale_y_log10()
+      }
+      
       return(p)
     } else {
       return(NULL)
+    }
+  })
+  
+  
+  output$plot_text <- renderPrint({
+    if (!is.null(input$map_marker_click)) {
+      cat("Plots are showing the aggregated data per week.\n")
+      cat("If the maximum tPCB is too large (>50000 ng/L), the y-axis changes to log10 scale.")
     }
   })
   
