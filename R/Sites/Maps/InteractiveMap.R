@@ -23,7 +23,6 @@ install.packages("tidyverse")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
-
 # Prepare data ------------------------------------------------------------
 datasets <- list(
   "Chesapeake Bay" = wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),],
