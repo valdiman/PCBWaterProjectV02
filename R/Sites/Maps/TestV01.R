@@ -1,16 +1,17 @@
 
 # Install packages
+install.packages("dplyr")
+install.packages("ggplot2")
 install.packages("leaflet")
 install.packages("shiny")
-
 
 # Load libraries
 {
   library(dplyr)
-  library(shiny)
-  library(leaflet)
-  library(stringr) # str_detect
   library(ggplot2)
+  library(leaflet)
+  library(shiny)
+  library(stringr) # str_detect
 }
 
 # Read data ---------------------------------------------------------------
@@ -23,7 +24,7 @@ datasets <- list(
   "Housatonic River" = wdc[str_detect(wdc$LocationName, 'Housatonic River'),],
   "Hudson River" = wdc[str_detect(wdc$LocationName, 'Hudson River'),],
   "Kalamazoo River" = wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),],
-  "New Bedford" = wdc[str_detect(wdc$LocationName, 'New Bedford'),],
+  "New Bedford Harbor" = wdc[str_detect(wdc$LocationName, 'New Bedford'),],
   "Portland Harbor" = wdc[str_detect(wdc$LocationName, 'Portland Harbor'),],
   "Spokane River" = wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 )
@@ -49,7 +50,8 @@ for (dataset_name in names(datasets)) {
     dataset = dataset_name
   )
   
-  colnames(processed_data) <- c("SiteID", "date", "Latitude", "Longitude", "tPCB", "dataset")
+  colnames(processed_data) <- c("SiteID", "date", "Latitude",
+                                "Longitude", "tPCB", "dataset")
   
   # Append the processed data to the combinedData
   combinedData <- rbind(combinedData, processed_data)
@@ -58,12 +60,13 @@ for (dataset_name in names(datasets)) {
 # Define the Shiny UI
 ui <- fluidPage(
   titlePanel("PCB Water Concentration Data Visualization"),
-  selectInput("dataset", label = "Select dataset:", choices = unique(combinedData$dataset)),
+  selectInput("dataset", label = "Select dataset:",
+              choices = unique(combinedData$dataset)),
   leafletOutput("map"),
   splitLayout(
     tableOutput("data"),
-    plotOutput("plot", height = "300px"),
-    cellWidths = c("70%", "30%")
+    plotOutput("plot", height = "300px", width = "700px"),
+    cellWidths = c("35%", "65%")
   )
 )
 
@@ -81,13 +84,15 @@ server <- function(input, output, session) {
                 lat1 = min(data()$Latitude),
                 lng2 = max(data()$Longitude),
                 lat2 = max(data()$Latitude)) %>%
-      setView(lng = mean(data()$Longitude), lat = mean(data()$Latitude), zoom = 8)
+      setView(lng = mean(data()$Longitude), lat = mean(data()$Latitude),
+              zoom = 8)
   })
   
   output$data <- renderTable({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
-      data <- subset(data(), SiteID == siteid)[, c("SiteID", "date", "tPCB")]
+      data <- subset(data(), SiteID == siteid)[, c("SiteID",
+                                                   "date", "tPCB")]
       data$date <- format(as.Date(data$date), "%m-%d-%Y")
       colnames(data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
       return(data)
@@ -117,14 +122,13 @@ server <- function(input, output, session) {
         theme_bw() +
         theme(
           axis.text.x = element_text(angle = 90, hjust = 1),
-          axis.text = element_text(size = 12)
+          axis.text = element_text(size = 8)
         )
       return(p)
     } else {
       return(NULL)
     }
   })
-  
   
   observe({
     leafletProxy("map", data = data()) %>%
