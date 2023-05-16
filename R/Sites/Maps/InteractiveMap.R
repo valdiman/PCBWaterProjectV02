@@ -1,4 +1,7 @@
-
+# Code to create interactive maps of PCB concentrations for 8 locations.
+# Chesapeake Bay, Fox River, Housatonic River, Hudson River, Kalamazoo River,
+# New Bedford Harbor, Portland Harbor, and Spokane River.
+# Data on the plots are aggregated per week to help better visualizing the data
 # Install packages
 install.packages("dplyr")
 install.packages("ggplot2")
@@ -110,7 +113,6 @@ server <- function(input, output, session) {
     }
   })
   
-  
   output$plot <- renderPlot({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
@@ -154,6 +156,7 @@ server <- function(input, output, session) {
           "Number of Samples: ", as.character(table(data()$SiteID)[as.character(SiteID)])
         )
       )
+      
   })
   
 }
