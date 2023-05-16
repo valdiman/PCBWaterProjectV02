@@ -14,43 +14,24 @@ install.packages('factoextra')
   library(factoextra) # Plot result from PCA
 }
 
-# Read data ---------------------------------------------------------------
-# Data in pg/L
+# Read data
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
-# Data preparation --------------------------------------------------------
-# # Only consider congener data 
-{
-  cong <- subset(wdc, AroclorCongener == "Congener")
-  # Remove samples with only 0s
-  cong <- cong[!(rowSums(cong[, c(14:117)], na.rm = TRUE)==0), ]
-  # Remove metadata
-  cong.1 <- subset(cong, select = -c(SampleID:AroclorCongener))
-  # Remove Aroclor data
-  cong.1 <- subset(cong.1, select = -c(A1016:A1260))
-}
+# Data preparation
+cong <- subset(wdc, AroclorCongener == "Congener")
+cong <- cong[!(rowSums(cong[, 14:117], na.rm = TRUE) == 0), ]
+cong.1 <- subset(cong, !LocationName == "New Bedford Harbor") # Only 18 congeners
+cong.1 <- subset(cong, select = -c(SampleID:AroclorCongener))
+cong.1 <- subset(cong.1, select = -c(A1016:A1260))
 
 # Create an average PCB profile distribution
-{
-  # Generate PCB profile for individual samples
-  tmp <- rowSums(cong.1, na.rm = TRUE)
-  prof <- sweep(cong.1, 1, tmp, FUN = "/")
-  # Average
-  prof.ave <- data.frame(colMeans(prof, na.rm = TRUE))
-  colnames(prof.ave) <- c("mean")
-  prof.sd <- data.frame(apply(prof, 2, sd, na.rm = TRUE))
-  colnames(prof.sd) <- c("sd")
-  congener <- row.names(prof.ave)
-  prof.ave <- cbind(congener, prof.ave$mean, prof.sd$sd)
-  colnames(prof.ave) <- c("congener", "mean", "sd")
-  prof.ave <- data.frame(prof.ave)
-  prof.ave$mean <- as.numeric(as.character(prof.ave$mean))
-  prof.ave$sd <- as.numeric(as.character(prof.ave$sd))
-  prof.ave$congener <- as.character(prof.ave$congener)
-  # Then turn it back into a factor with the levels in the correct order
-  prof.ave$congener <- factor(prof.ave$congener,
-                              levels = unique(prof.ave$congener))
-}
+tmp <- rowSums(cong.1, na.rm = TRUE)
+prof <- sweep(cong.1, 1, tmp, FUN = "/")
+prof.ave <- colMeans(prof, na.rm = TRUE)
+prof.sd <- apply(prof, 2, sd, na.rm = TRUE)
+congener <- as.character(colnames(prof))
+prof.ave <- data.frame(congener, mean = as.numeric(prof.ave), sd = as.numeric(prof.sd))
+prof.ave$congener <- factor(prof.ave$congener, levels = unique(congener))
 
 # Plot profiles -----------------------------------------------------------
 # Plot average PCB profile
@@ -104,18 +85,12 @@ fviz_pca_ind(PCA.1, geom.ind = "point", pointshape = 21,
              col.var = "black", repel = TRUE)
 
 # (2) Samples with Method 1668
-{
-  cong.1668 <- subset(wdc, EPAMethod == "M1668")
-  # Remove samples with only 0s
-  cong.1668 <- cong.1668[!(rowSums(cong.1668[, c(14:117)],
-                                   na.rm = TRUE)==0), ]
-  sampleID <- cong.1668$SampleID
-  # Remove metadata
-  cong.1668 <- subset(cong.1668,
-                      select = -c(SampleID:AroclorCongener))
-  # Remove Aroclor data
-  cong.1668 <- subset(cong.1668, select = -c(A1016:A1260))
-}
+# Data preparation
+cong.1668 <- subset(wdc, EPAMethod == "M1668")
+cong.1668 <- cong.1668[!(rowSums(cong.1668[, c(14:117)], na.rm = TRUE)==0), ]
+sampleID <- cong.1668$SampleID
+cong.1668 <- subset(cong.1668, select = -c(SampleID:AroclorCongener))
+cong.1668 <- subset(cong.1668, select = -c(A1016:A1260))
 tmp <- rowSums(cong.1668, na.rm = TRUE)
 prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
 # Add sample names to first column
@@ -134,9 +109,9 @@ fviz_pca_ind(PCA.2, geom.ind = "point", pointshape = 21,
 
 # Cosine theta analysis ---------------------------------------------------
 # Samples with 100% congeners only
-prof.cos.1 <- prof[rowMeans(!is.na(prof)) >= 1, ]
+prof.cos.1 <- prof[rowMeans(!is.na(prof)) >= 0.9, ]
 # Transpose and remove sample names
-prof.cos.2 <- t(prof.cos.1[,-1])
+prof.cos.2 <- t(prof[,-1])
 # Create matrix to storage results
 costheta <- matrix(nrow = length(prof.cos.2[1,]),
                    ncol = length(prof.cos.2[1,]))
