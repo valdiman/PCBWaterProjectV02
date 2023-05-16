@@ -2,6 +2,7 @@
 # Chesapeake Bay, Fox River, Housatonic River, Hudson River, Kalamazoo River,
 # New Bedford Harbor, Portland Harbor, and Spokane River.
 # Data on the plots are aggregated per week to help better visualizing the data
+
 # Install packages
 install.packages("dplyr")
 install.packages("ggplot2")
@@ -22,6 +23,8 @@ install.packages("tidyverse")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
+
+# Prepare data ------------------------------------------------------------
 datasets <- list(
   "Chesapeake Bay" = wdc[str_detect(wdc$LocationName, 'Chesapeake Bay'),],
   "Fox River" = wdc[str_detect(wdc$LocationName, 'Fox River'),],
@@ -61,6 +64,7 @@ for (dataset_name in names(datasets)) {
   combinedData <- rbind(combinedData, processed_data)
 }
 
+# Shiny app ---------------------------------------------------------------
 # Define the Shiny UI
 ui <- fluidPage(
   titlePanel("PCB Water Concentration Data Visualization"),
@@ -156,9 +160,7 @@ server <- function(input, output, session) {
           "Number of Samples: ", as.character(table(data()$SiteID)[as.character(SiteID)])
         )
       )
-      
   })
-  
 }
 
 shinyApp(ui, server)
