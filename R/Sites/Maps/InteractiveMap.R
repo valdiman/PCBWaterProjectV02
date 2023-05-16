@@ -66,7 +66,10 @@ for (dataset_name in names(datasets)) {
 # Shiny app ---------------------------------------------------------------
 # Define the Shiny UI
 ui <- fluidPage(
-  titlePanel("PCB Water Concentration Data Visualization"),
+  tags$div(
+    tags$h1("PCB Water Concentration Data Visualization"),
+    tags$h4("Specific locations")
+  ),
   selectInput("dataset", label = "Select dataset:",
               choices = unique(combinedData$dataset)),
   leafletOutput("map"),
@@ -132,12 +135,17 @@ server <- function(input, output, session) {
       data$week <- cut(data$date, breaks = "week")
       data_agg <- aggregate(tPCB ~ week, data, mean)
       
+      num_values <- nrow(data_agg)
+      width <- ifelse(num_values > 5, 0.8, 0.2 + (num_values * 0.1))
+      
       p <- ggplot(data_agg, aes(x = week, y = tPCB)) +
-        geom_col(fill = "steelblue", width = 0.8) +
+        geom_col(fill = "steelblue", width = width) +
         labs(x = NULL, y = paste("\u03A3", "PCB (ng/L)", sep = "")) +
         theme_bw() +
         theme(
           axis.text.x = element_text(angle = 90, hjust = 1),
+          axis.text.y = element_text(size = 12),  # Increase the font size of y-axis numbers
+          axis.title.y = element_text(size = 14),  # Increase the font size of y-axis title
           axis.text = element_text(size = 8)
         )
       
@@ -157,7 +165,8 @@ server <- function(input, output, session) {
   output$plot_text <- renderPrint({
     if (!is.null(input$map_marker_click)) {
       cat("Plots are showing the aggregated data per week.\n")
-      cat("If the maximum tPCB is too large (>50000 ng/L), the y-axis changes to log10 scale.")
+      cat("If the maximum tPCB is too large (>50000 ng/L), the y-axis changes to log10 scale.\n")
+      cat("Source:")
     }
   })
   
