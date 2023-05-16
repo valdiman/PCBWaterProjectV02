@@ -2,7 +2,7 @@
 
 ## License
 
-Metab-Partitioning is licensed under the 2-Clause BSD License - see the [LICENSE](LICENSE) file for details.
+PCBWaterProject is licensed under the 2-Clause BSD License - see the [LICENSE](LICENSE) file for details.
 
 ----------------------
 General Information
