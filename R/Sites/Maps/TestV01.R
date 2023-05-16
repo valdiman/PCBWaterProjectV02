@@ -91,15 +91,24 @@ server <- function(input, output, session) {
   output$data <- renderTable({
     if (!is.null(input$map_marker_click)) {
       siteid <- input$map_marker_click$id
-      data <- subset(data(), SiteID == siteid)[, c("SiteID",
-                                                   "date", "tPCB")]
-      data$date <- format(as.Date(data$date), "%m-%d-%Y")
-      colnames(data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
-      return(data)
+      filtered_data <- subset(data(), SiteID == siteid)[, c("SiteID", "date", "tPCB")]
+      filtered_data$date <- format(as.Date(filtered_data$date, format = "%m/%d/%y"), "%m-%d-%Y")
+      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
+      
+      # Sort the data by date
+      filtered_data <- filtered_data[order(as.Date(filtered_data$date, format = "%m-%d-%Y")), ]
+      
+      # Get the number of samples
+      num_samples <- nrow(filtered_data)
+      
+      colnames(filtered_data)[1] <- paste("SiteID (n =", num_samples, ")")
+      
+      return(filtered_data)
     } else {
       return(data.frame())
     }
   })
+  
   
   output$plot <- renderPlot({
     if (!is.null(input$map_marker_click)) {
@@ -140,7 +149,8 @@ server <- function(input, output, session) {
         popup = ~paste(
           "SiteID: ", SiteID, "<br>",
           "Latitude: ", Latitude, "<br>",
-          "Longitude: ", Longitude
+          "Longitude: ", Longitude, "<br>",
+          "Number of Samples: ", as.character(table(data()$SiteID)[as.character(SiteID)])
         )
       )
   })
