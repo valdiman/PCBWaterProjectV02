@@ -30,7 +30,7 @@ wdc.2 <- data.frame(
   date = with(wdc.1, as.Date(SampleDate, format = "%m/%d/%y")),
   Latitude = with(wdc.1, as.numeric(Latitude)),
   Longitude = with(wdc.1, as.numeric(Longitude)),
-  tPCB = as.numeric(tpcb),
+  tPCB = as.numeric(tpcb/1000),
   LocationName = with(wdc.1, LocationName) # Add LocationName column
 )
 
