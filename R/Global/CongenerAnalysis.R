@@ -95,10 +95,10 @@ tmp <- rowSums(cong.1668, na.rm = TRUE)
 prof.1668 <- sweep(cong.1668, 1, tmp, FUN = "/")
 # Add sample names to first column
 prof.1668 <- cbind(sampleID, prof.1668)
-# Subset data frame to rows with >= 75% non-NA values
-prof.1668.1 <- prof.1668[rowMeans(!is.na(prof.1668)) >= 0.7, ]
-# Remove congeners with < 50% detection frequency
-prof.1668.2 <- prof.1668.1[, colMeans(!is.na(prof.1668.1)) >= 0.75]
+# Subset data.frame to rows with >= 75% non-NA values
+prof.1668.1 <- prof.1668[rowMeans(!is.na(prof.1668)) >= 0.6, ]
+# Remove congeners with < 75% detection frequency
+prof.1668.2 <- prof.1668[, colMeans(!is.na(prof.1668.1)) >= 0.75]
 # Perform PCA
 PCA.2 <- PCA(prof.1668.2[,-1], graph = FALSE)
 fviz_eig(PCA.2, addlabels = TRUE, ylim = c(0, 100))
