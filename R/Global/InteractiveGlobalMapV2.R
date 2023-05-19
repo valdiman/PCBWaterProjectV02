@@ -15,61 +15,31 @@ install.packages("tidyverse")
   library(stringr) # str_detect
 }
 
-# Read data ---------------------------------------------------------------
+
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
-# Prepare data ------------------------------------------------------------
-datasets <- list()
-
-# Create datasets based on LocationName
-unique_locations <- unique(trimws(wdc$LocationName))
-for (location in unique_locations) {
-  dataset_name <- gsub(" ", "_", location)  # Generate dataset name based on LocationName
-  
-  datasets[[dataset_name]] <- wdc[trimws(wdc$LocationName) == location, ]
-}
-
-# Remove the "All_Locations" dataset from the list
-datasets[["All_Locations"]] <- NULL
-
-# Process and combine the datasets
-combinedData <- NULL  # Initialize an empty data frame
-
-for (dataset_name in names(datasets)) {
-  dataset <- datasets[[dataset_name]]
-  
-  # Remove samples (rows) with total PCBs = 0
-  dataset <- dataset[!(rowSums(dataset[, 14:117], na.rm = TRUE) == 0), ]
-  
-  # Calculate total PCB
-  tpcb <- rowSums(dataset[, 14:117], na.rm = TRUE)
-  
-  # Create data.frame
-  processed_data <- data.frame(
-    SampleID = with(dataset, SampleID),
-    date = with(dataset, as.Date(SampleDate, format = "%m/%d/%y")),
-    Latitude = with(dataset, as.numeric(Latitude)),
-    Longitude = with(dataset, as.numeric(Longitude)),
-    tPCB = as.numeric(tpcb),
-    dataset = dataset_name
-  )
-  
-  colnames(processed_data) <- c("SampleID", "date", "Latitude",
-                                "Longitude", "tPCB", "dataset")
-  
-  # Append the processed data to the combinedData
-  combinedData <- rbind(combinedData, processed_data)
-}
-
-# Remove duplicated rows based on SampleID column
-combinedData <- distinct(combinedData, SampleID, .keep_all = TRUE)
+# Data preparation
+# Remove samples (rows) with total PCBs = 0
+wdc.1 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE) == 0), ]
+# Calculate total PCB
+tpcb <- rowSums(wdc.1[, c(14:117)], na.rm = TRUE)
+# Create data.frame
+wdc.2 <- data.frame(
+  SiteID = with(wdc.1, SiteID),
+  date = with(wdc.1, as.Date(SampleDate, format = "%m/%d/%y")),
+  Latitude = with(wdc.1, as.numeric(Latitude)),
+  Longitude = with(wdc.1, as.numeric(Longitude)),
+  tPCB = as.numeric(tpcb),
+  LocationName = with(wdc.1, LocationName) # Add LocationName column
+)
 
 # Shiny app ---------------------------------------------------------------
 # Define the Shiny UI
 ui <- fluidPage(
   titlePanel("PCB Water Concentration Data Visualization"),
-  selectInput("dataset", "Select Dataset:", choices = c("All", names(datasets))),
+  selectInput("location_select", "Select Location:", 
+              choices = c("All", unique(wdc$LocationName))),  # Include "All" option
   leafletOutput("map"),
   splitLayout(
     tableOutput("data"),
@@ -78,15 +48,15 @@ ui <- fluidPage(
   ),
   verbatimTextOutput("plot_text")
 )
-
 # Define the Shiny server
 server <- function(input, output, session) {
-  # Subset data based on selected dataset
+  
+  # Filter the data based on the selected location
   filtered_data <- reactive({
-    if (input$dataset == "All") {
-      return(combinedData)
+    if (input$location_select == "All") {
+      wdc.2  # Return all data
     } else {
-      return(combinedData[combinedData$dataset == input$dataset, ])
+      subset(wdc.2, LocationName == input$location_select)  # Filter by selected location
     }
   })
   
@@ -97,50 +67,47 @@ server <- function(input, output, session) {
       addMarkers(
         lng = ~Longitude,
         lat = ~Latitude,
-        label = ~as.character(SampleID),
+        label = ~as.character(SiteID),
         labelOptions = labelOptions(noHide = TRUE)
       )
   })
   
   # Render the table
   output$data <- renderTable({
-    filtered_data <- filtered_data()
-    
     if (!is.null(input$map_marker_click)) {
-      sampleid <- input$map_marker_click$id
-      subset_data <- subset(filtered_data, SampleID == sampleid)[, c("SampleID", "date", "tPCB")]
-      subset_data$date <- format(as.Date(subset_data$date, format = "%m/%d/%y"), "%m-%d-%Y")
-      colnames(subset_data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
+      siteid <- input$map_marker_click$id
+      filtered_data <- subset(wdc.2, SiteID == siteid)[, c("SiteID", "date", "tPCB")]
+      filtered_data$date <- format(as.Date(filtered_data$date, format = "%m/%d/%y"), "%m-%d-%Y")
+      colnames(filtered_data)[3] <- paste("\u03A3", "PCB ", "(ng/L)", sep = "")
       
       # Sort the data by date
-      subset_data <- subset_data[order(as.Date(subset_data$date, format = "%m-%d-%Y")), ]
+      filtered_data <- filtered_data[order(as.Date(filtered_data$date, format = "%m-%d-%Y")), ]
       
       # Get the number of samples
-      num_samples <- nrow(subset_data)
+      num_samples <- nrow(filtered_data)
       
-      colnames(subset_data)[1] <- paste("SampleID (n =", num_samples, ")")
+      colnames(filtered_data)[1] <- paste("SiteID (n =", num_samples, ")")
       
-      return(subset_data)
+      return(filtered_data)
     } else {
       return(data.frame())
     }
   })
   
+  # Render the plot
   output$plot <- renderPlot({
-    filtered_data <- filtered_data()
-    
     if (!is.null(input$map_marker_click)) {
-      sampleid <- input$map_marker_click$id
-      subset_data <- subset(filtered_data, SampleID == sampleid)
+      siteid <- input$map_marker_click$id
+      site_data <- subset(filtered_data(), SiteID == siteid)
       
-      if (nrow(subset_data) == 0) {
-        # No data available for the selected SampleID
+      if (nrow(site_data) == 0) {
+        # No data available for the selected SiteID
         return(NULL)
       }
       
       # Aggregate data by week and calculate the average of PCB values
-      subset_data$week <- cut(subset_data$date, breaks = "week")
-      data_agg <- aggregate(tPCB ~ week, data = subset_data, mean)
+      site_data$week <- cut(site_data$date, breaks = "week")
+      data_agg <- aggregate(tPCB ~ week, data = site_data, mean)
       
       num_values <- nrow(data_agg)
       width <- ifelse(num_values > 5, 0.8, 0.2 + (num_values * 0.1))
@@ -182,12 +149,13 @@ server <- function(input, output, session) {
       addMarkers(
         lng = ~Longitude,
         lat = ~Latitude,
-        layerId = ~SampleID,
+        layerId = ~SiteID,
         popup = ~paste(
-          "SampleID: ", SampleID, "<br>",
+          "Location Name: ", LocationName, "<br>",
+          "SiteID: ", SiteID, "<br>",
           "Latitude: ", Latitude, "<br>",
           "Longitude: ", Longitude, "<br>",
-          "Dataset: ", dataset
+          "Number of Samples: ", as.character(table(filtered_data()$SiteID)[as.character(SiteID)])
         )
       )
   })
