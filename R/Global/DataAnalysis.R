@@ -128,7 +128,7 @@ hist(log10(tpcb$tPCB))
 
 ## Total PCBs in 1 box plot
 ## include 64 pg/L from EPA
-ggplot(tpcb, aes(x = "", y = tPCB)) + 
+ggplot(tpcb, aes(x = "", y = tPCB/1000)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_classic() +
