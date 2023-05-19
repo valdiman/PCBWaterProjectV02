@@ -309,6 +309,7 @@ server <- function(input, output, session) {
     }
   })  
   
+  
   observe({
     leafletProxy("map", data = filtered_data()) %>%
       clearMarkers() %>%
