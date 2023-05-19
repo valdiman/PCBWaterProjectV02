@@ -188,6 +188,8 @@ shapiro.test(res.nbh.tpcb)
 
 # Remove minimum and top 4 values
 nbh.tpcb.1 <- subset(nbh.tpcb, tPCB < 220000 & tPCB > 130)
+nbh.tpcb.1 <- subset(nbh.tpcb, tPCB > 2000)
+
 
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
