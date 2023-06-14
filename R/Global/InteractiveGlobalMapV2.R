@@ -15,7 +15,6 @@ install.packages("tidyverse")
   library(stringr) # str_detect
 }
 
-
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
