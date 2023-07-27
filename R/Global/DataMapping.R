@@ -155,7 +155,6 @@ ggmap(PO.map) +
                   name = expression(bold(atop(Sigma*"PCBs (mean)",
                                               paste("2007-2019 (pg/L)")))),
                   max_size = 8)
-  
 
 # Fox River ---------------------------------------------------------------
 # Select only from Fox River
