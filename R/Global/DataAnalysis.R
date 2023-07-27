@@ -145,11 +145,15 @@ ggplot(tpcb, aes(x = "", y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(lwd = 1.2, width = 0.7, outlier.shape = NA, alpha = 0) +
   annotation_logticks(sides = "l") +
-  geom_hline(yintercept = 0.64*1000, color = "#9999CC",
+  geom_hline(yintercept = 640, color = "#9999CC",
              linewidth = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
-  geom_hline(yintercept = 0.064*1000, color = "#CC6666",
+  geom_hline(yintercept = 64, color = "#CC6666",
              linewidth = 0.8) # associated with an incremental cancer risk of 10−6.
-  
+
+# Calculate % samples above both EPA thresholds
+EPA640 <- sum(tpcb$tPCB > 640)/nrow(tpcb)*100
+EPA64 <- sum(tpcb$tPCB > 64)/nrow(tpcb)*100
+
 # Individual congeners
 summary(wdc.cong.1, na.rm = T, zero = T)
 # Get the max value for each congener
@@ -209,7 +213,7 @@ ggplot(wdc.2, aes(x = factor(StateSampled, levels = sites),
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
