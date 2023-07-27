@@ -21,34 +21,41 @@ install.packages("raster")
 install.packages("grid")
 
 # Load libraries
-library(dplyr)
-library(usethis)
-library(devtools)
-library(ggplot2)
-library(ggmap) # function map_data
-library(maps)
-library(leaflet)
-library(rgeos)
-library(ggsn)
-library(ggrepel)
-library(reshape2)
-library(ggpmisc)
+{
+  library(dplyr)
+  library(usethis)
+  library(devtools)
+  library(ggplot2)
+  library(ggmap) # function map_data
+  library(maps)
+  library(leaflet)
+  library(rgeos)
+  library(ggsn)
+  library(ggrepel)
+  library(reshape2)
+  library(ggpmisc)
+}
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc.0 <- read.csv("WaterDataCongenerAroclor08052022.csv")
-
+wdc.0 <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 # Extract sample site locations -------------------------------------------
 # Calculate total PCB
-tpcb <- rowSums(wdc.0[, c(14:117)], na.rm = T)
-# Select and combine sample sites anf tPCB
-wdc.location <- cbind.data.frame(wdc.0$LocationID, wdc.0$Latitude, wdc.0$Longitude,
-                      tpcb)
-# Name the columns
-colnames(wdc.location) <- c("LocationID", "Latitude", "Longitude", "tPCB")
-# Average tPCB per sample site
-wdc.location <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
-                          data = wdc.location, mean)
+# Data preparation
+{
+  # Remove samples (rows) with total PCBs  = 0
+  wdc.2 <- wdc.0[!(rowSums(wdc.0[, c(14:117)], na.rm = TRUE)==0),]
+  # Calculate total PCB
+  tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
+  # Select and combine sample sites anf tPCB
+  wdc.location <- cbind.data.frame(wdc.2$SiteID, wdc.2$Latitude, wdc.2$Longitude,
+                                   tpcb)
+  # Name the columns
+  colnames(wdc.location) <- c("SiteID", "Latitude", "Longitude", "tPCB")
+  # Average tPCB per sample site
+  wdc.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                            data = wdc.location, mean)
+}
 
 # Global maps -------------------------------------------------------------
 us <- map_data("usa")
@@ -93,17 +100,19 @@ ggplot() +
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = wdc.location, aes(x = Longitude, y = Latitude,
-                                       size = tPCB/1000),
+                                       size = tPCB),
              color = "red") +
   theme(legend.position = "right") +
-  scale_size_area(breaks = c(50, 500, 1000, 1500, 2000),
-                  name = expression(bold(atop(Sigma*"PCBs (mean)",
-                  paste("1990-2020 (ng/L)")))), max_size = 5)
+  scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 1500*1000,
+                             2000*1000), labels = comma,
+                  name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
+                                              paste("1990-2020 (pg/L)")))),
+                  max_size = 5)
   
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
 # Select only from Portland Harbor
-wdc.PO <- subset(wdc.0, SiteName == "Portland Harbor")
+wdc.PO <- subset(wdc.0, LocationName == "Portland Harbor")
 
 # Create general map
 PO.box <- make_bbox(lon = wdc.PO$Longitude, lat = wdc.PO$Latitude, f = 0.8)
@@ -112,7 +121,7 @@ PO.map <- get_stamenmap(bbox = PO.box, zoom = 10)
 # Plot map with sites
 # Prepare data
 # Get tPCB and coordinates
-tPCB.PO <- data.frame(cbind(wdc.PO$LocationID, wdc.PO$Latitude,
+tPCB.PO <- data.frame(cbind(wdc.PO$LocationName, wdc.PO$Latitude,
                             wdc.PO$Longitude, rowSums(wdc.PO[, c(14:117)],
                                                       na.rm = TRUE)))
 # Name the columns
@@ -131,20 +140,22 @@ ggmap(PO.map) +
              shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = LocationID),
-                   data = tPCB.mean, family = 'Times New Roman', size = 3, 
+                   data = tPCB.PO.mean, family = 'Times New Roman', size = 3, 
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
 ggmap(PO.map) +
   geom_point(data = tPCB.PO.mean, aes(x = Longitude, y = Latitude,
-                                   size = tPCB), alpha = 1, color  = "red") +
+                                      size = tPCB), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
-  scale_size_area(breaks = c(100, 250, 500, 1000, 1500),
+  scale_size_area(breaks = c(100, 250, 500, 1000, 1500), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean)",
-                                              paste("2007-2019 (ng/L)")))),
+                                              paste("2007-2019 (pg/L)")))),
                   max_size = 8)
+  
 
 # Fox River ---------------------------------------------------------------
 # Select only from Fox River
