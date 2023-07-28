@@ -1,6 +1,4 @@
 ## Water PCB concentrations mapping.
-# Data were obtained from EPA and contractors from PCB Superfund
-# sites in USA
 
 # Install packages
 install.packages("ggplot2")
@@ -14,11 +12,9 @@ install.packages("usethis")
 install.packages("GISTools")
 install.packages("rgeos")
 install.packages("ggsn")
-install.packages("sf")
 install.packages("ggrepel")
 install.packages("ggpp")
-install.packages("raster")
-install.packages("grid")
+install.packages("scales")
 
 # Load libraries
 {
@@ -34,27 +30,28 @@ install.packages("grid")
   library(ggrepel)
   library(reshape2)
   library(ggpmisc)
+  library(scales) # add commas in legend in maps 
 }
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc.0 <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 # Extract sample site locations -------------------------------------------
 # Calculate total PCB
 # Data preparation
 {
   # Remove samples (rows) with total PCBs  = 0
-  wdc.2 <- wdc.0[!(rowSums(wdc.0[, c(14:117)], na.rm = TRUE)==0),]
+  wdc.1 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
   # Calculate total PCB
-  tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
+  tpcb <- rowSums(wdc.1[, c(14:117)], na.rm = T)
   # Select and combine sample sites anf tPCB
-  wdc.location <- cbind.data.frame(wdc.2$SiteID, wdc.2$Latitude, wdc.2$Longitude,
-                                   tpcb)
+  location <- cbind.data.frame(wdc.1$SiteID, wdc.1$Latitude, wdc.1$Longitude,
+                               tpcb)
   # Name the columns
-  colnames(wdc.location) <- c("SiteID", "Latitude", "Longitude", "tPCB")
+  colnames(location) <- c("SiteID", "Latitude", "Longitude", "tPCB.ave")
   # Average tPCB per sample site
-  wdc.location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                            data = wdc.location, mean)
+  tpcb.ave.loc <- aggregate(tPCB.ave ~ SiteID + Latitude + Longitude,
+                           data = location, mean)
 }
 
 # Global maps -------------------------------------------------------------
@@ -62,14 +59,14 @@ us <- map_data("usa")
 states <- map_data("state")
 
 # Find number of samples per state to be included as table in maps
-wdc.1 <- wdc.0 %>%
+wdc.2 <- wdc %>%
   group_by(StateSampled) %>%
   summarise(n = n())
 #colnames(wdc.1) <- c("State", "# samples")
-wdc.2 <- data.frame(t(wdc.1))
+wdc.3 <- data.frame(t(wdc.2))
 name <- c('State', '# samples')
-wdc.2 <- data.frame(col1 = name, wdc.2)
-names(wdc.2) <- NULL
+wdc.3 <- data.frame(col1 = name, wdc.3)
+names(wdc.3) <- NULL
 
 # (1) Map of US with locations
 ggplot() +
@@ -82,11 +79,11 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
              colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = wdc.0, aes(x = Longitude, y = Latitude),
+  geom_point(data = wdc, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
   annotate(geom = 'table', x = -65, y = 53,
-           label = list(wdc.2), size = 2.9) # add table with info
+           label = list(wdc.3), size = 2.9) # add table with info
 
 # (2) Map + tPCB
 # Cannot include legend
@@ -99,20 +96,20 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = wdc.location, aes(x = Longitude, y = Latitude,
-                                       size = tPCB),
-             color = "red") +
+  geom_point(data = tpcb.ave.loc, aes(x = Longitude, y = Latitude,
+                                       size = tPCB.ave), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
   theme(legend.position = "right") +
   scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 1500*1000,
                              2000*1000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
                                               paste("1990-2020 (pg/L)")))),
                   max_size = 5)
-  
+
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
 # Select only from Portland Harbor
-wdc.PO <- subset(wdc.0, LocationName == "Portland Harbor")
+wdc.PO <- subset(wdc, LocationName == "Portland Harbor")
 
 # Create general map
 PO.box <- make_bbox(lon = wdc.PO$Longitude, lat = wdc.PO$Latitude, f = 0.8)
@@ -131,12 +128,12 @@ tPCB.PO$Latitude <- as.numeric(tPCB.PO$Latitude)
 tPCB.PO$Longitude <- as.numeric(tPCB.PO$Longitude)
 tPCB.PO$tPCB <- as.numeric(tPCB.PO$tPCB)
 # Average tPCB per site
-tPCB.PO.mean <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
+tPCB.PO.ave <- aggregate(tPCB ~ LocationID + Latitude + Longitude,
                        data = tPCB.PO, FUN = mean)
 
 # (1) Plot map + locations
 ggmap(PO.map) +
-  geom_point(data = tPCB.PO.mean, aes(x = Longitude, y = Latitude),
+  geom_point(data = tPCB.PO.ave, aes(x = Longitude, y = Latitude),
              shape = 21, color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = LocationID),
@@ -146,7 +143,7 @@ ggmap(PO.map) +
 
 # (2) Plot map + tPCB
 ggmap(PO.map) +
-  geom_point(data = tPCB.PO.mean, aes(x = Longitude, y = Latitude,
+  geom_point(data = tPCB.PO.ave, aes(x = Longitude, y = Latitude,
                                       size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
@@ -158,7 +155,7 @@ ggmap(PO.map) +
 
 # Fox River ---------------------------------------------------------------
 # Select only from Fox River
-wdc.Fox <- subset(wdc.0, SiteName == "Fox River")
+wdc.Fox <- subset(wdc, SiteName == "Fox River")
 
 # Create general map
 Fox.box <- make_bbox(lon = wdc.Fox$Longitude, lat = wdc.Fox$Latitude,
