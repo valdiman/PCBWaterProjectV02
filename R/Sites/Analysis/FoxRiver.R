@@ -81,21 +81,18 @@ hist(log10(fox.tpcb$tPCB)) # Better approach
 # (2) Time trend plots
 ggplot(fox.tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  geom_point(shape = 21, size = 2, fill = "white") +
   xlab("") +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
+  theme_classic() +
+  theme(aspect.ratio = 5/8) +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 12),
         axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 3)
+  theme(axis.text.x = element_text(size = 12, angle = 60,
+                                   hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 9))
   
 # (3) Seasonality
 ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
