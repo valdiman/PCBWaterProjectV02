@@ -64,7 +64,6 @@ states <- map_data("state")
   wdc.2 <- wdc %>%
     group_by(StateSampled) %>%
     summarise(n = n())
-  #colnames(wdc.1) <- c("State", "# samples")
   wdc.3 <- data.frame(t(wdc.2))
   name <- c('State', '# samples')
   wdc.3 <- data.frame(col1 = name, wdc.3)
@@ -89,7 +88,6 @@ ggplot() +
            label = list(wdc.3), size = 2.9) # add table with info
 
 # (2) Map + tPCB
-# Cannot include legend
 ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = "lightblue") +
@@ -115,7 +113,7 @@ ggplot() +
   # Select only from Portland Harbor
   wdc.PO <- subset(wdc, LocationName == "Portland Harbor")
   # Create general map
-  PO.box <- make_bbox(lon = wdc.PO$Longitude, lat = wdc.PO$Latitude, f = 0.8)
+  PO.box <- make_bbox(lon = wdc.PO$Longitude, lat = wdc.PO$Latitude, f = 0.5)
   PO.map <- get_stamenmap(bbox = PO.box, zoom = 10)
   
   # Plot map with sites
@@ -238,9 +236,7 @@ ggmap(Fox.map) +
   Hud.box <- make_bbox(
     lon = c(min(wdc.Hud$Longitude) - lon_range, max(wdc.Hud$Longitude) + lon_range),
     lat = wdc.Hud$Latitude,
-    f = 0.1
-  )
-  
+    f = 0.1)
   # Fetch the map using the new bounding box
   Hud.map <- get_stamenmap(bbox = Hud.box, zoom = 8)
   
@@ -280,22 +276,29 @@ ggmap(Hud.map) +
   scale_size_area(
     breaks = c(2000, 5000, 10000, 20000, 30000, 40000),
     labels = comma,
-    name = expression(bold(atop(Sigma*"PCBs (mean) 2005-2017 (pg/L)"))),
+    name = expression(bold(Sigma*"PCBs (mean) 2005-2017 (pg/L)")),
     max_size = 8
   ) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = "right",  # Move the legend to the bottom
         legend.justification = c(0.3, 1),  # Center the legend horizontally
-        legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+        legend.title = element_text(margin = margin(b = -1, unit = "pt")))
 
 # Housatonic River --------------------------------------------------------
 {
   # Select only from Housotonic River
   wdc.Hou <- subset(wdc, LocationName == "Housatonic River")
   
-  # Create general map
-  Hou.box <- make_bbox(lon = wdc.Hou$Longitude, lat = wdc.Hou$Latitude, f = 0.2)
-  Hou.map <- get_stamenmap(bbox = Hou.box, zoom = 10)
+  # Increase the longitude range to make the map wider
+  lon_range <- 0.1  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  Hou.box <- make_bbox(
+    lon = c(min(wdc.Hou$Longitude) - lon_range, max(wdc.Hou$Longitude) + lon_range),
+    lat = wdc.Hou$Latitude,
+    f = 0.2)
+  # Fetch the map using the new bounding box
+  Hou.map <- get_stamenmap(bbox = Hou.box, zoom = 8)
   
   # Plot map with sites
   # Prepare data
@@ -324,19 +327,21 @@ ggmap(Hou.map) +
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
-# (2) Plot map + tPCB
+# Plot map with sites and tPCB
 ggmap(Hou.map) +
-  geom_point(data = tPCB.Hou.ave, aes(x = Longitude, y = Latitude,
-                                      size = tPCB), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
+  geom_point(data = tPCB.Hou.ave, aes(x = Longitude, y = Latitude, size = tPCB),
+             alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
-  scale_size_area(breaks = c(50, 100, 500, 1000, 1500), labels = comma,
-                  name = expression(bold(atop(Sigma*"PCBs (mean) 1998-2020 (pg/L)"))),
-                  max_size = 8) +
+  scale_size_area(
+    breaks = c(50, 250, 500, 1000, 1500),
+    labels = comma,
+    name = expression(bold(Sigma*"PCBs (mean) 2005-2017 (pg/L)")),
+    max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(2.2, 0.8),  # Adjust the legend.position values
-        legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+  theme(legend.position = c(1.9, 0.75),  # Adjust the legend position (x, y)
+        legend.box.just = "center",  # Center the legend inside the bounding box
+        legend.title = element_text(margin = margin(b = -1, unit = "pt")))
 
 # Kalamazoo River ---------------------------------------------------------
 {
@@ -386,7 +391,7 @@ ggmap(Kal.map) +
                   name = expression(bold(atop(Sigma*"PCBs (mean) 1994-2010 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.27, 0.78),  # Adjust the legend.position values
+  theme(legend.position = c(1.33, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # New Bedford -------------------------------------------------------------
@@ -394,8 +399,14 @@ ggmap(Kal.map) +
   # Select only from Hudson River
   wdc.NB <- subset(wdc, LocationName == "New Bedford Harbor")
   
-  # Create general map
-  NB.box <- make_bbox(lon = wdc.NB$Longitude, lat = wdc.NB$Latitude, f = 0.2)
+  # Increase the longitude range to make the map wider
+  lon_range <- 0.02  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  NB.box <- make_bbox(
+    lon = c(min(wdc.NB$Longitude) - lon_range, max(wdc.NB$Longitude) + lon_range),
+    lat = wdc.NB$Latitude,
+    f = 0.08)
   NB.map <- get_stamenmap(bbox = NB.box, zoom = 12)
   
   # Plot map with sites
@@ -412,7 +423,7 @@ ggmap(Kal.map) +
   tPCB.NB$tPCB <- as.numeric(tPCB.NB$tPCB)
   # Average tPCB per site
   tPCB.NB.ave <- aggregate(tPCB ~ SiteID+ Latitude + Longitude,
-                         data = tPCB.NB, FUN = mean)
+                           data = tPCB.NB, FUN = mean)
 }
 
 # (1) Plot map + locations
@@ -428,32 +439,37 @@ geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
 # (2) Plot map + tPCB
 ggmap(NB.map) +
   geom_point(data = tPCB.NB.ave, aes(x = Longitude, y = Latitude,
-                                      size = tPCB), alpha = 1, color  = "black",
+                                     size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
   scale_size_area(breaks = c(10000, 500000, 1000000, 3000000), labels = comma,
-                  name = expression(bold(atop(Sigma*"PCBs (mean) 1994-2010 (pg/L)"))),
+                  name = expression(bold(atop(Sigma*"PCBs (mean) 2006-2016 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(4, 0.78),  # Adjust the legend.position values
+  theme(legend.position = c(1.65, 0.78),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Spokane River -----------------------------------------------------------
 {
   # Select only from Hudson River
   wdc.Spo <- subset(wdc, LocationName == "Spokane River")
+  # Increase the longitude range to make the map wider
+  lat_range <- 0.05  # Modify this value to control the width
   
-  # Create general map
-  Spo.box <- make_bbox(lon = wdc.Spo$Longitude, lat = wdc.Spo$Latitude, f = 0.6)
+  # Create a new bounding box with the adjusted longitude range
+  Spo.box <- make_bbox(
+    lon = wdc.Spo$Longitude,
+    lat = c(min(wdc.Spo$Latitude) - lat_range, max(wdc.Spo$Latitude) + lat_range),
+    f = 0.15)
   Spo.map <- get_stamenmap(bbox = Spo.box, zoom = 10)
   
   # Plot map with sites
   # Prepare data
   # Get tPCB and coordinates
-  tPCB.Spo <- data.frame(cbind(wdc.Spo.1$SiteID, wdc.Spo.1$Latitude,
-                               wdc.Spo.1$Longitude,
-                               rowSums(wdc.Spo.1[, c(14:117)],
+  tPCB.Spo <- data.frame(cbind(wdc.Spo$SiteID, wdc.Spo$Latitude,
+                               wdc.Spo$Longitude,
+                               rowSums(wdc.Spo[, c(14:117)],
                                        na.rm = TRUE)))
   # Name the columns
   colnames(tPCB.Spo) <- c("SiteID", "Latitude", "Longitude", "tPCB")
@@ -463,7 +479,7 @@ ggmap(NB.map) +
   tPCB.Spo$tPCB <- as.numeric(tPCB.Spo$tPCB)
   # Average tPCB per site
   tPCB.Spo.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                         data = tPCB.Spo, FUN = mean)
+                            data = tPCB.Spo, FUN = mean)
 }
 
 # (1) Plot map + locations
@@ -479,63 +495,70 @@ ggmap(Spo.map) +
 # (2) Plot map + tPCB
 ggmap(Spo.map) +
   geom_point(data = tPCB.Spo.ave, aes(x = Longitude, y = Latitude,
-                                     size = tPCB), alpha = 1, color  = "black",
+                                      size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
-  scale_size_area(breaks = c(120, 1000, 3000, 5000, 8000), labels = comma,
+  scale_size_area(breaks = c(200, 1000, 2000, 4000, 8000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2014-2016 (pg/L)"))),
-                  max_size = 8)
+                  max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(4, 0.78),  # Adjust the legend.position values
+  theme(legend.position = c(1.155, 0.7),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Blue River --------------------------------------------------------------
-# Select only from Blue River
-wdc.Blu <- subset(wdc.0, SiteName == "BlueRiver")
-
-# Create general map
-Blu.box <- make_bbox(lon = wdc.Blu$Longitude, lat = wdc.Blu$Latitude, f = 1.0)
-Blu.map <- get_stamenmap(bbox = Blu.box, zoom = 14)
-
-# Plot map with sites
-# Prepare data
-# Remove samples (rows) with total PCBs  = 0
-wdc.Blu.1 <- wdc.Blu[!(rowSums(wdc.Blu[, c(12:115)],
-                               na.rm = TRUE)==0),] # sum of PCB1 to PCB209
-# Get tPCB and coordinates
-tPCB.Blu <- data.frame(cbind(wdc.Blu.1$Latitude, wdc.Blu.1$Longitude,
-                             wdc.Blu.1$SiteSampled,
-                             rowSums(wdc.Blu.1[, c(12:115)],
-                                     na.rm = TRUE)))
-# Name the columns
-colnames(tPCB.Blu) <- c("Latitude", "Longitude", "Site", "tPCB")
-# Change no numeric to numeric
-tPCB.Blu$Latitude <- as.numeric(tPCB.Blu$Latitude)
-tPCB.Blu$Longitude <- as.numeric(tPCB.Blu$Longitude)
-tPCB.Blu$tPCB <- as.numeric(tPCB.Blu$tPCB)
-# Average tPCB per site
-tPCB.mean <- aggregate(tPCB ~ Latitude + Longitude + Site,
-                       data = tPCB.Blu, FUN = mean)
+{
+  # Select only from Blue River
+  wdc.Blu <- subset(wdc, LocationName == "Blue River")
+  
+  # Create general map
+  Blu.box <- make_bbox(lon = wdc.Blu$Longitude, lat = wdc.Blu$Latitude, f = 0.12)
+  Blu.map <- get_stamenmap(bbox = Blu.box, zoom = 14)
+  
+  # Plot map with sites
+  # Prepare data
+  # Remove samples (rows) with total PCBs  = 0
+  wdc.Blu.1 <- wdc.Blu[!(rowSums(wdc.Blu[, c(14:117)],
+                                 na.rm = TRUE)==0),] # sum of PCB1 to PCB209
+  # Get tPCB and coordinates
+  tPCB.Blu <- data.frame(cbind(wdc.Blu.1$SiteID, wdc.Blu.1$Latitude,
+                               wdc.Blu.1$Longitude,
+                               rowSums(wdc.Blu.1[, c(14:117)],
+                                       na.rm = TRUE)))
+  # Name the columns
+  colnames(tPCB.Blu) <- c("SiteID", "Latitude", "Longitude", "tPCB")
+  # Change no numeric to numeric
+  tPCB.Blu$Latitude <- as.numeric(tPCB.Blu$Latitude)
+  tPCB.Blu$Longitude <- as.numeric(tPCB.Blu$Longitude)
+  tPCB.Blu$tPCB <- as.numeric(tPCB.Blu$tPCB)
+  # Average tPCB per site
+  tPCB.Blue.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                             data = tPCB.Blu, FUN = mean)
+}
 
 # (1) Plot map + locations
 ggmap(Blu.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude), shape = 21,
+  geom_point(data = tPCB.Blue.ave, aes(x = Longitude, y = Latitude), shape = 21,
              color = "red",
              fill = "white", size = 1.75, stroke = 0.75) +
-  geom_label_repel(aes(x = Longitude, y = Latitude, label = Site),
-                   data = tPCB.mean, family = 'Times', size = 1.8, 
+  geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
+                   data = tPCB.Blue.ave, family = 'Times', size = 1.8, 
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
 ggmap(Blu.map) +
-  geom_point(data = tPCB.mean, aes(x = Longitude, y = Latitude,
-                                   size = tPCB), alpha = 1, color  = "red") +
-  #scale_size_area(breaks = c(100, 125, 150, 175, 200),
-  #                name = "Ave. PCBs \n2018-2019 (pg/L)") +
+  geom_point(data = tPCB.Blue.ave, aes(x = Longitude, y = Latitude,
+                                       size = tPCB), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
-  ylab("Latitude")
+  ylab("Latitude") +
+  scale_size_area(breaks = c(1000, 10000, 80000, 120000, 160000), labels = comma,
+                  name = expression(bold(atop(Sigma*"PCBs (mean) 2004-2019 (pg/L)"))),
+                  max_size = 8) +
+  guides(size = guide_legend(label.hjust = 0.5)) +
+  theme(legend.position = c(1.45, 0.72),  # Adjust the legend.position values
+        legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 
 # Extra -------------------------------------------------------------------
