@@ -231,8 +231,17 @@ ggmap(Fox.map) +
   #l <- data.frame(SiteID = "WCPCB-HUD015", Latitude = 43.29781, Longitude = -75, tPCB = 0)
   #tPCB.Hud.ave <- rbind(tPCB.Hud.ave, l)
   
-  # Create general map
-  Hud.box <- make_bbox(lon = wdc.Hud$Longitude-5, lat = wdc.Hud$Latitude, f = 0.3)
+  # Increase the longitude range to make the map wider
+  lon_range <- 0.5  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  Hud.box <- make_bbox(
+    lon = c(min(wdc.Hud$Longitude) - lon_range, max(wdc.Hud$Longitude) + lon_range),
+    lat = wdc.Hud$Latitude,
+    f = 0.1
+  )
+  
+  # Fetch the map using the new bounding box
   Hud.map <- get_stamenmap(bbox = Hud.box, zoom = 8)
   
   # Plot map with sites
@@ -262,17 +271,21 @@ ggmap(Hud.map) +
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
+# Plot the map with points and legend
 ggmap(Hud.map) +
-  geom_point(data = tPCB.Hud.ave, aes(x = Longitude, y = Latitude,
-                                      size = tPCB), alpha = 1, color  = "black",
-             shape = 21, fill = "white", stroke = 0.75) +
+  geom_point(data = tPCB.Hud.ave, aes(x = Longitude, y = Latitude, size = tPCB),
+             alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
-  scale_size_area(breaks = c(2000, 5000, 10000, 20000, 30000, 40000), labels = comma,
-                  name = expression(bold(atop(Sigma*"PCBs (mean) 2005-2017 (pg/L)"))),
-                  max_size = 8) +
+  scale_size_area(
+    breaks = c(2000, 5000, 10000, 20000, 30000, 40000),
+    labels = comma,
+    name = expression(bold(atop(Sigma*"PCBs (mean) 2005-2017 (pg/L)"))),
+    max_size = 8
+  ) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(3, 0.75),  # Adjust the legend.position values
+  theme(legend.position = "right",  # Move the legend to the bottom
+        legend.justification = c(0.3, 1),  # Center the legend horizontally
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Housatonic River --------------------------------------------------------
