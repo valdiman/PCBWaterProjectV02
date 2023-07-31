@@ -103,17 +103,26 @@ ggplot() +
   theme(legend.position = "right") +
   scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 1500*1000,
                              2000*1000), labels = comma,
-                  name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
-                                              paste("1990-2020 (pg/L)")))),
-                  max_size = 5)
+                  name = expression(bold(Sigma*"PCBs (SiteID mean) 1990-2020 (pg/L)")),
+                  max_size = 5) +
+  guides(size = guide_legend(label.hjust = 0.5)) +
+  theme(legend.position = c(1.26, 0.75),  # Adjust the legend.position values
+        legend.title = element_text(margin = margin(b = -4, unit = "pt")))
 
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
 {
   # Select only from Portland Harbor
   wdc.PO <- subset(wdc, LocationName == "Portland Harbor")
-  # Create general map
-  PO.box <- make_bbox(lon = wdc.PO$Longitude, lat = wdc.PO$Latitude, f = 0.5)
+  # Increase the longitude range to make the map wider
+  lon_range <- 0.01  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  PO.box <- make_bbox(
+    lon = c(min(wdc.PO$Longitude) - lon_range, max(wdc.PO$Longitude) + lon_range),
+    lat = wdc.PO$Latitude,
+    f = 0.5)
+  # Fetch the map using the new bounding box
   PO.map <- get_stamenmap(bbox = PO.box, zoom = 10)
   
   # Plot map with sites
@@ -150,11 +159,14 @@ ggmap(PO.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -122.77, y = 45.7,
+           label = 'Portland Harbor (OR)', colour = 'black', size = 3.5,
+           fontface = 2) +
   scale_size_area(breaks = c(100, 250, 500, 1000, 1500), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2007-2019 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.6, 0.8),  # Adjust the legend.position values
+  theme(legend.position = c(1.62, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Fox River ---------------------------------------------------------------
@@ -163,7 +175,7 @@ ggmap(PO.map) +
   wdc.Fox <- subset(wdc, LocationName == "Fox River")
   # Create general map
   Fox.box <- make_bbox(lon = wdc.Fox$Longitude, lat = wdc.Fox$Latitude,
-                       f = 0.4)
+                       f = 0.22)
   Fox.map <- get_stamenmap(bbox = Fox.box, zoom = 10)
   
   # Plot map with sites
@@ -193,15 +205,6 @@ ggmap(Fox.map) +
              fill = "white", size = 1.75, stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
-  annotate('text', x = -87.5, y = 45,
-           label = 'Green Bay', colour = 'black', size = 3,
-           fontface = 2) +
-  annotate('text', x = -88.2, y = 44.435,
-           label = 'Fox River', colour = 'black', size = 3,
-           fontface = 2) +
-  annotate('text', x = -87.85, y = 44.7,
-           label = 'Green Bay', colour = 'black', size = 3,
-           fontface = 2) +
   geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
                    data = tPCB.Fox.ave, family = 'Times New Roman', size = 2.8, 
                    box.padding = 0.2, point.padding = 0.3,
@@ -214,21 +217,20 @@ ggmap(Fox.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -88.35, y = 44.6,
+           label = 'Fox River/Green Bay (WI)', colour = 'black', size = 3.5,
+           fontface = 2) +
   scale_size_area(breaks = c(100, 500, 1500, 30000, 65000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2005-2018 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.35, 0.8),  # Adjust the legend.position values
+  theme(legend.position = c(1.44, 0.74),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Hudson River ------------------------------------------------------------
 {
   # Select only from Hudson River
   wdc.Hud <- subset(wdc, LocationName == "Hudson River")
-  # Create 2 locations to increase with of the map
-  #l <- data.frame(SiteID = "WCPCB-HUD015", Latitude = 43.29781, Longitude = -75, tPCB = 0)
-  #tPCB.Hud.ave <- rbind(tPCB.Hud.ave, l)
-  
   # Increase the longitude range to make the map wider
   lon_range <- 0.5  # Modify this value to control the width
   
@@ -273,15 +275,17 @@ ggmap(Hud.map) +
              alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -74, y = 43.4,
+           label = 'Hudson River (NY)', colour = 'black', size = 3.5,
+           fontface = 2) +
   scale_size_area(
     breaks = c(2000, 5000, 10000, 20000, 30000, 40000),
     labels = comma,
     name = expression(bold(Sigma*"PCBs (mean) 2005-2017 (pg/L)")),
-    max_size = 8
-  ) +
+    max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = "right",  # Move the legend to the bottom
-        legend.justification = c(0.3, 1),  # Center the legend horizontally
+        legend.justification = c(0.0, 1.05),  # Center the legend horizontally
         legend.title = element_text(margin = margin(b = -1, unit = "pt")))
 
 # Housatonic River --------------------------------------------------------
@@ -333,6 +337,9 @@ ggmap(Hou.map) +
              alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -73.34, y = 42.57,
+           label = 'Housatonic River (CT+MA)', colour = 'black', size = 2.8,
+           fontface = 2) +
   scale_size_area(
     breaks = c(50, 250, 500, 1000, 1500),
     labels = comma,
@@ -349,7 +356,7 @@ ggmap(Hou.map) +
   wdc.Kal <- subset(wdc, LocationName == "Kalamazoo River")
   
   # Create general map
-  Kal.box <- make_bbox(lon = wdc.Kal$Longitude, lat = wdc.Kal$Latitude, f = 0.2)
+  Kal.box <- make_bbox(lon = wdc.Kal$Longitude, lat = wdc.Kal$Latitude, f = 0.1)
   Kal.map <- get_stamenmap(bbox = Kal.box, zoom = 10)
   
   # Plot map with sites
@@ -387,6 +394,9 @@ ggmap(Kal.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -85.6, y = 42.67,
+           label = 'Kalamazoo River (MI)', colour = 'black', size = 2.8,
+           fontface = 2) +
   scale_size_area(breaks = c(100, 1000, 10000, 50000, 700000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 1994-2010 (pg/L)"))),
                   max_size = 8) +
@@ -400,7 +410,7 @@ ggmap(Kal.map) +
   wdc.NB <- subset(wdc, LocationName == "New Bedford Harbor")
   
   # Increase the longitude range to make the map wider
-  lon_range <- 0.02  # Modify this value to control the width
+  lon_range <- 0.021  # Modify this value to control the width
   
   # Create a new bounding box with the adjusted longitude range
   NB.box <- make_bbox(
@@ -443,6 +453,9 @@ ggmap(NB.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -70.918, y = 41.699,
+           label = 'New Bedford Harbor (MA)', colour = 'black', size = 3.4,
+           fontface = 2) +
   scale_size_area(breaks = c(10000, 500000, 1000000, 3000000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2006-2016 (pg/L)"))),
                   max_size = 8) +
@@ -455,13 +468,13 @@ ggmap(NB.map) +
   # Select only from Hudson River
   wdc.Spo <- subset(wdc, LocationName == "Spokane River")
   # Increase the longitude range to make the map wider
-  lat_range <- 0.05  # Modify this value to control the width
+  lat_range <- 0.1  # Modify this value to control the width
   
   # Create a new bounding box with the adjusted longitude range
   Spo.box <- make_bbox(
     lon = wdc.Spo$Longitude,
     lat = c(min(wdc.Spo$Latitude) - lat_range, max(wdc.Spo$Latitude) + lat_range),
-    f = 0.15)
+    f = 0.12)
   Spo.map <- get_stamenmap(bbox = Spo.box, zoom = 10)
   
   # Plot map with sites
@@ -499,11 +512,14 @@ ggmap(Spo.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -117.43, y = 47.83,
+           label = 'Spokane River (WA)', colour = 'black', size = 3.4,
+           fontface = 2) +
   scale_size_area(breaks = c(200, 1000, 2000, 4000, 8000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2014-2016 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.155, 0.7),  # Adjust the legend.position values
+  theme(legend.position = c(1.23, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 # Blue River --------------------------------------------------------------
@@ -553,11 +569,14 @@ ggmap(Blu.map) +
              shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
   ylab("Latitude") +
+  annotate('text', x = -94.572, y = 38.9685,
+           label = 'Blue River (MO)', colour = 'black', size = 3.4,
+           fontface = 2) +
   scale_size_area(breaks = c(1000, 10000, 80000, 120000, 160000), labels = comma,
                   name = expression(bold(atop(Sigma*"PCBs (mean) 2004-2019 (pg/L)"))),
                   max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.45, 0.72),  # Adjust the legend.position values
+  theme(legend.position = c(1.45, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
 
 
