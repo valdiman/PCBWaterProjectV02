@@ -211,7 +211,7 @@ ggmap(Fox.map) +
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
-ggmap(Fox.map) +
+maptPCBFoxRiver <- ggmap(Fox.map) +
   geom_point(data = tPCB.Fox.ave, aes(x = Longitude, y = Latitude,
                                       size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
@@ -226,6 +226,10 @@ ggmap(Fox.map) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = c(1.44, 0.74),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBFoxRiverAveV01.png", plot = maptPCBFoxRiver,
+       width = 9, height = 4, dpi = 300)
 
 # Hudson River ------------------------------------------------------------
 {
