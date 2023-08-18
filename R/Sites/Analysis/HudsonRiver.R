@@ -15,6 +15,7 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages('patchwork')
+install.packages("scales")
 
 # Load libraries
 {
@@ -98,6 +99,27 @@ ggplot(hud.tpcb, aes(y = tPCB,
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 20, y = 10^5.3, label = "Hudson River",
            size = 3)
+
+# (2) Time trend plots
+HRTime <- ggplot(hud.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  xlab("") +
+  scale_y_log10(
+    breaks = c(10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTime.png",
+       plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(hud.tpcb, aes(x = season, y = tPCB)) +
