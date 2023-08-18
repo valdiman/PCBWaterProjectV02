@@ -153,7 +153,7 @@ ggmap(PO.map) +
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
-ggmap(PO.map) +
+maptPCBPO <- ggmap(PO.map) +
   geom_point(data = tPCB.PO.ave, aes(x = Longitude, y = Latitude,
                                      size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
@@ -168,6 +168,10 @@ ggmap(PO.map) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = c(1.62, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBPortlandAveV01.png", plot = maptPCBPO,
+       width = 8, height = 4, dpi = 300)
 
 # Fox River ---------------------------------------------------------------
 {
@@ -273,8 +277,8 @@ ggmap(Hud.map) +
                    box.padding = 0.2, point.padding = 0.3,
                    segment.color = 'grey50')
 
-# Plot the map with points and legend
-ggmap(Hud.map) +
+# (2) Plot map + tPCB
+maptPCBHudsonRiver <- ggmap(Hud.map) +
   geom_point(data = tPCB.Hud.ave, aes(x = Longitude, y = Latitude, size = tPCB),
              alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
@@ -291,6 +295,10 @@ ggmap(Hud.map) +
   theme(legend.position = "right",  # Move the legend to the bottom
         legend.justification = c(0.0, 1.05),  # Center the legend horizontally
         legend.title = element_text(margin = margin(b = -1, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBHudsonRiverAveV01.png", plot = maptPCBHudsonRiver,
+       width = 6, height = 4, dpi = 300)
 
 # Housatonic River --------------------------------------------------------
 {
@@ -336,7 +344,7 @@ ggmap(Hou.map) +
                    segment.color = 'grey50')
 
 # Plot map with sites and tPCB
-ggmap(Hou.map) +
+maptPCBHouRiver <- ggmap(Hou.map) +
   geom_point(data = tPCB.Hou.ave, aes(x = Longitude, y = Latitude, size = tPCB),
              alpha = 1, color = "black", shape = 21, fill = "white", stroke = 0.75) +
   xlab("Longitude") +
@@ -353,6 +361,10 @@ ggmap(Hou.map) +
   theme(legend.position = c(1.9, 0.75),  # Adjust the legend position (x, y)
         legend.box.just = "center",  # Center the legend inside the bounding box
         legend.title = element_text(margin = margin(b = -1, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBHousatonicRiverAveV01.png",
+       plot = maptPCBHouRiver, width = 9, height = 4, dpi = 300)
 
 # Kalamazoo River ---------------------------------------------------------
 {
@@ -392,7 +404,7 @@ ggmap(Kal.map) +
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
-ggmap(Kal.map) +
+maptPCBKalRiver <- ggmap(Kal.map) +
   geom_point(data = tPCB.Kal.ave, aes(x = Longitude, y = Latitude,
                                       size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
@@ -407,6 +419,10 @@ ggmap(Kal.map) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = c(1.33, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBKalamazooAveV01.png",
+       plot = maptPCBKalRiver, width = 12, height = 4, dpi = 300)
 
 # New Bedford -------------------------------------------------------------
 {
@@ -451,7 +467,7 @@ geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
                  segment.color = 'grey50')
 
 # (2) Plot map + tPCB
-ggmap(NB.map) +
+maptPCBNB <- ggmap(NB.map) +
   geom_point(data = tPCB.NB.ave, aes(x = Longitude, y = Latitude,
                                      size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
@@ -466,6 +482,10 @@ ggmap(NB.map) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = c(1.65, 0.78),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBNBHAveV01.png",
+       plot = maptPCBNB, width = 9, height = 4, dpi = 300)
 
 # Spokane River -----------------------------------------------------------
 {
@@ -510,7 +530,7 @@ ggmap(Spo.map) +
                    segment.color = 'grey50')
 
 # (2) Plot map + tPCB
-ggmap(Spo.map) +
+maptPCBSpo <- ggmap(Spo.map) +
   geom_point(data = tPCB.Spo.ave, aes(x = Longitude, y = Latitude,
                                       size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
@@ -525,6 +545,73 @@ ggmap(Spo.map) +
   guides(size = guide_legend(label.hjust = 0.5)) +
   theme(legend.position = c(1.23, 0.75),  # Adjust the legend.position values
         legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBSpoAveV01.png",
+       plot = maptPCBSpo, width = 12, height = 4, dpi = 300)
+
+# Chesapeake Bay ----------------------------------------------------------
+{
+  # Select only from Chesapeake Bay
+  wdc.Che <- subset(wdc, LocationName == "Chesapeake Bay")
+  # Increase the longitude range to make the map wider
+  lat_range <- 0.05  # Modify this value to control the width
+  
+  # Create a new bounding box with the adjusted longitude range
+  Che.box <- make_bbox(
+    lon = wdc.Che$Longitude,
+    lat = c(min(wdc.Che$Latitude) - lat_range, max(wdc.Che$Latitude) + lat_range),
+    f = 0.15)
+  Che.map <- get_stamenmap(bbox = Che.box, zoom = 9)
+  
+  # Plot map with sites
+  # Prepare data
+  # Get tPCB and coordinates
+  tPCB.Che <- data.frame(cbind(wdc.Che$SiteID, wdc.Che$Latitude,
+                               wdc.Che$Longitude,
+                               rowSums(wdc.Che[, c(14:117)],
+                                       na.rm = TRUE)))
+  # Name the columns
+  colnames(tPCB.Che) <- c("SiteID", "Latitude", "Longitude", "tPCB")
+  # Change no numeric to numeric
+  tPCB.Che$Latitude <- as.numeric(tPCB.Che$Latitude)
+  tPCB.Che$Longitude <- as.numeric(tPCB.Che$Longitude)
+  tPCB.Che$tPCB <- as.numeric(tPCB.Che$tPCB)
+  # Average tPCB per site
+  tPCB.Che.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                            data = tPCB.Che, FUN = mean)
+}
+
+# (1) Plot map + locations
+ggmap(Che.map) +
+  geom_point(data = tPCB.Che.ave, aes(x = Longitude, y = Latitude), shape = 21,
+             color = "red",
+             fill = "white", size = 1.75, stroke = 0.75) +
+  geom_label_repel(aes(x = Longitude, y = Latitude, label = SiteID),
+                   data = tPCB.Spo.ave, family = 'Times', size = 1.8, 
+                   box.padding = 0.2, point.padding = 0.3,
+                   segment.color = 'grey50')
+
+# (2) Plot map + tPCB 
+maptPCBChe <- ggmap(Che.map) +
+  geom_point(data = tPCB.Che.ave, aes(x = Longitude, y = Latitude,
+                                      size = tPCB), alpha = 1, color  = "black",
+             shape = 21, fill = "white", stroke = 0.75) +
+  xlab("Longitude") +
+  ylab("Latitude") +
+  annotate('text', x = -76.15, y = 40.00,
+           label = 'Chesapeake Bay (MA)', colour = 'black', size = 2.9,
+           fontface = 2) +
+  scale_size_area(breaks = c(1000, 5000, 10000, 20000, 30000), labels = comma,
+                  name = expression(bold(atop(Sigma*"PCBs (mean) 2001-2015 (pg/L)"))),
+                  max_size = 8) +
+  guides(size = guide_legend(label.hjust = 0.5)) +
+  theme(legend.position = c(2.05, 0.78),  # Adjust the legend.position values
+        legend.title = element_text(margin = margin(b = -16, unit = "pt")))
+
+# Save map in folder
+ggsave("Output/Maps/Sites/maptPCBCheAveV01.png",
+       plot = maptPCBChe, width = 7, height = 4, dpi = 300)
 
 # Blue River --------------------------------------------------------------
 {
