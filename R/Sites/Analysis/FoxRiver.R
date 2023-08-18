@@ -34,7 +34,6 @@ install.packages("scales")
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(patchwork) # combine plots
-  library(scales) # y-axis format
 }
 
 # Read data ---------------------------------------------------------------
