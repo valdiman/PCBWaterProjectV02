@@ -17,6 +17,7 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages('patchwork')
+install.packages("scales")
 
 # Load libraries
 {
@@ -33,6 +34,7 @@ install.packages('patchwork')
   library(dataRetrieval) # read data from USGS
   library(reshape)
   library(patchwork) # combine plots
+  library(scales) # y-axis format
 }
 
 # Read data ---------------------------------------------------------------
@@ -79,25 +81,25 @@ hist(fox.tpcb$tPCB)
 hist(log10(fox.tpcb$tPCB)) # Better approach
 
 # (2) Time trend plots
-plotFoxRiverTime <- ggplot(fox.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "white") +
+FRTime <- ggplot(fox.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
+  scale_y_log10(
+    breaks = c(1, 10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(1, 10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
   theme_classic() +
-  theme(aspect.ratio = 5/8) +
   ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
   theme(
-    axis.text.y = element_text(face = "bold", size = 12),
-    axis.title.y = element_text(face = "bold", size = 10),
-    axis.text.x = element_text(size = 12, angle = 60, hjust = 1),
-    axis.title.x = element_text(face = "bold", size = 9),
-    aspect.ratio = 5/8)
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTimeV01.png",
-       plot = plotFoxRiverTime, width = 6, height = 4, dpi = 300)
+ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTime.png",
+       plot = FRTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
