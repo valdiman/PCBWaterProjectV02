@@ -16,6 +16,7 @@ install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages("tidyr")
 install.packages('patchwork')
+install.packages("scales")
 
 # Load libraries
 {
@@ -79,23 +80,25 @@ hist(che.tpcb$tPCB)
 hist(log10(che.tpcb$tPCB))
 
 # (2) Time trend plots
-ggplot(che.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+CHTime <- ggplot(che.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 2, y = 20, label = "Chesapeake Bay",
-           size = 3)
+  scale_y_log10(
+    breaks = c(1, 10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(1, 10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotChesapeakeTime.png",
+       plot = CHTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(che.tpcb, aes(x = season, y = tPCB)) +
