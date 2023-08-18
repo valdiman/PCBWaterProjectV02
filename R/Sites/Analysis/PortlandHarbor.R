@@ -14,6 +14,7 @@ install.packages("lmerTest")
 install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages('patchwork')
+install.packages("scales")
 
 # Load libraries
 {
@@ -94,6 +95,27 @@ ggplot(por.tpcb, aes(y = tPCB,
         axis.title.x = element_text(face = "bold", size = 9)) +
   annotate("text", x = 5.8, y = 10^3.7, label = "Portland Harbor",
            size = 3)
+
+# (2) Time trend plots
+POTime <- ggplot(por.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  xlab("") +
+  scale_y_log10(
+    breaks = c(10, 100, 1000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotPortlandTime.png",
+       plot = POTime, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
 ggplot(por.tpcb, aes(x = season, y = tPCB)) +
