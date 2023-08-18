@@ -28,6 +28,7 @@ install.packages("zoo")
 install.packages("dataRetrieval")
 install.packages("reshape")
 install.packages('patchwork')
+install.packages("scales")
 
 # Load libraries
 {
@@ -52,7 +53,6 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 
 # Select nbh River data ---------------------------------------------------
 nbh.0 <- wdc[str_detect(wdc$LocationName, 'New Bedford'),]
-
 
 # Data preparation --------------------------------------------------------
 {
@@ -91,23 +91,25 @@ hist(nbh.tpcb$tPCB)
 hist(log10(nbh.tpcb$tPCB))
 
 # (2) Time trend plots
-ggplot(nbh.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+NBHTime <- ggplot(nbh.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 2.5, y = 10^5.3, label = "New Bedford Harbor",
-           size = 3)
+  scale_y_log10(
+    breaks = c(1000, 10000, 100000, 1000000, 10000000),  # Specify the desired breaks
+    labels = label_comma()(c(1000, 10000, 100000, 1000000, 10000000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotNBHTime.png",
+       plot = NBHTime, width = 7, height = 6, dpi = 500)
 
 # (3) Seasonality
 ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
