@@ -36,23 +36,15 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08212023.csv")
 # Extract sample site locations -------------------------------------------
-# Calculate total PCB
 # Data preparation
 {
   # Remove samples (rows) with total PCBs  = 0
-  wdc.1 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb <- rowSums(wdc.1[, c(14:117)], na.rm = T)
-  # Select and combine sample sites anf tPCB
-  location <- cbind.data.frame(wdc.1$SiteID, wdc.1$Latitude, wdc.1$Longitude,
-                               tpcb)
-  # Name the columns
-  colnames(location) <- c("SiteID", "Latitude", "Longitude", "tPCB.ave")
+  wdc.1 <- wdc[!(wdc$tPCB) == 0, ]
   # Average tPCB per sample site
-  tpcb.ave.loc <- aggregate(tPCB.ave ~ SiteID + Latitude + Longitude,
-                           data = location, mean)
+  tpcb.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                        data = wdc.1, mean)
 }
 
 # USA/State maps -------------------------------------------------------------
@@ -81,7 +73,7 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
              colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = wdc, aes(x = Longitude, y = Latitude),
+  geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
   annotate(geom = 'table', x = -65, y = 53,
@@ -97,8 +89,8 @@ ggplot() +
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
-  geom_point(data = tpcb.ave.loc, aes(x = Longitude, y = Latitude,
-                                       size = tPCB.ave), alpha = 1, color  = "black",
+  geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude,
+                                       size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
   theme(legend.position = "right") +
   scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 1500*1000,
