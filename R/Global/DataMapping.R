@@ -80,26 +80,30 @@ ggplot() +
            label = list(wdc.3), size = 2.9) # add table with info
 
 # (2) Map + tPCB
-ggplot() +
+maptPCB <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = "lightblue") +
   coord_fixed(1.3) +
-  xlab("Longitude") +
-  ylab("Latitude") +
+  labs(x = "Longitude", y = "Latitude") +  # Added axis labels
   geom_path(data = states, aes(x = long, y = lat, group = group),
             colour = "white") +
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude,
-                                       size = tPCB), alpha = 1, color  = "black",
+                                  size = tPCB), alpha = 1, color  = "black",
              shape = 21, fill = "white", stroke = 0.75) +
-  theme(legend.position = "right") +
-  scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 1500*1000,
-                             2000*1000), labels = comma,
-                  name = expression(bold(Sigma*"PCBs (SiteID mean) 1990-2020 (pg/L)")),
+  scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 2000*1000,
+                             3000*1000), labels = comma,
+                  name = expression(bold("PCBs (SiteID mean) 1979-2020 (pg/L)")),
                   max_size = 5) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.26, 0.75),  # Adjust the legend.position values
+  theme(legend.position = c(1.2, 0.65),
         legend.title = element_text(margin = margin(b = -4, unit = "pt")))
+
+print(maptPCB)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/maptPCBV01.png", plot = maptPCB,
+       width = 8, height = 4, dpi = 300)
 
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
