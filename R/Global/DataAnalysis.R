@@ -34,7 +34,7 @@ install.packages("reshape")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor08212023.csv")
 
 # Data preparation --------------------------------------------------------
 # (1) All data, including 0s
@@ -47,8 +47,8 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
   wdc.cong <- subset(wdc, AroclorCongener == "Congener")
   # Remove metadata
   wdc.cong.1 <- subset(wdc.cong, select = -c(SampleID:AroclorCongener))
-  # Remove Aroclor data
-  wdc.cong.1 <- subset(wdc.cong.1, select = -c(A1016:A1260))
+  # Remove Aroclor data and tPCB
+  wdc.cong.1 <- subset(wdc.cong.1, select = -c(A1016:tPCB))
 }
 
 # Frequency analysis ------------------------------------------------------
@@ -73,7 +73,7 @@ wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
 summary(wdc.cong.freq$PCB.frequency)
 
 # Frequency detection plot
-ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
+plot.cong.freq <- ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   geom_bar(stat = "identity", fill = "#66ccff", color = "black") +
   geom_vline(xintercept = 100*mean(wdc.cong.freq$PCB.frequency),
              color = "red") +
@@ -82,17 +82,21 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
   xlim(c(0,100)) +
   theme(aspect.ratio = 20/5) +
   xlab(expression(bold("Frequency detection (%)"))) +
-  theme(axis.text.x = element_text(face = "bold", size = 5),
-        axis.title.x = element_text(face = "bold", size = 5)) +
-  theme(axis.text.y = element_text(face = "bold", size = 4))
+  theme(axis.text.x = element_text(face = "bold", size = 8),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.text.y = element_text(face = "bold", size = 7))
+
+print(plot.cong.freq)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Plots/Global/FreqPCBV01.png", plot = plot.cong.freq,
+       width = 5, height = 10, dpi = 300)
 
 # Total Concentration Analysis --------------------------------------------
 # Data preparation
 {
-  # Remove samples (rows) with total PCBs  = 0
-  wdc.2 <- wdc[!(rowSums(wdc[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb <- rowSums(wdc.2[, c(14:117)], na.rm = T)
+  # Remove samples with total PCBs  = 0
+  wdc.2 <- wdc[!(wdc$tPCB) == 0, ]
   # Change date format
   wdc.2$SampleDate <- as.Date(wdc.2$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
@@ -105,7 +109,7 @@ ggplot(wdc.cong.freq, aes(x = 100*PCB.frequency, y = congener)) +
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
   tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
-                wdc.2$Latitude, wdc.2$Longitude, as.matrix(tpcb),
+                wdc.2$Latitude, wdc.2$Longitude, wdc.2$tPCB,
                 data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
@@ -128,17 +132,17 @@ hist(log10(tpcb$tPCB))
 
 ## Total PCBs in 1 box plot
 ## include 64 pg/L from EPA
-ggplot(tpcb, aes(x = "", y = tPCB)) + 
+plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_classic() +
   theme(aspect.ratio = 14/2) +
   xlab(expression(bold(Sigma*"PCB")))+
-  ylab(expression(bold("Water Concentration 1990 - 2020 (pg/L)"))) +
-  theme(axis.text.y = element_text(face = "bold", size = 10),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8),
-        axis.title.x = element_text(face = "bold", size = 8, vjust = 5)) +
+  ylab(expression(bold("Water Concentration 1979 - 2020 (pg/L)"))) +
+  theme(axis.text.y = element_text(face = "bold", size = 16),
+        axis.title.y = element_text(face = "bold", size = 16)) +
+  theme(axis.text.x = element_text(face = "bold", size = 14),
+        axis.title.x = element_text(face = "bold", size = 14, vjust = 5)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
@@ -149,6 +153,12 @@ ggplot(tpcb, aes(x = "", y = tPCB)) +
              linewidth = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
   geom_hline(yintercept = 64, color = "#CC6666",
              linewidth = 0.8) # associated with an incremental cancer risk of 10−6.
+
+print(plot.box.tPCB)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Plots/Global/tPCBBoxPlotV01.png", plot = plot.box.tPCB,
+       width = 5, height = 10, dpi = 300)
 
 # Calculate % samples above both EPA thresholds
 EPA640 <- sum(tpcb$tPCB > 640)/nrow(tpcb)*100
@@ -256,13 +266,13 @@ ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
 # Regression analysis and plots---------------------------------------------
 # Plots
 # (1) Time trend plots
-ggplot(tpcb, aes(y = tPCB,
+plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
                      x = format(date,'%Y'))) +
   geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   theme(aspect.ratio = 5/20) +
   xlab("") +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -272,6 +282,12 @@ ggplot(tpcb, aes(y = tPCB,
                                    color = "black")) +
   theme(axis.text.y = element_text(face = "bold", size = 10),
         axis.title.y = element_text(face = "bold", size = 11))
+
+print(plot.time.tPCB)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Plots/Global/tPCBTimeV01.png", plot = plot.time.tPCB,
+       width = 10, height = 5, dpi = 300)
 
 # (2) Seasonality
 ggplot(tpcb, aes(x = season, y = tPCB)) +
