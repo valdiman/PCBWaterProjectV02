@@ -93,17 +93,18 @@ maptPCB <- ggplot() +
              shape = 21, fill = "white", stroke = 0.75) +
   scale_size_area(breaks = c(1000, 50*1000, 500*1000, 1000*1000, 2000*1000,
                              3000*1000), labels = comma,
-                  name = expression(bold("PCBs (SiteID mean) 1979-2020 (pg/L)")),
-                  max_size = 5) +
-  guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.2, 0.65),
+                  name = expression(bold(atop(Sigma*"PCBs (SiteID mean)",
+                  paste("1979-2020 (pg/L)")))),
+                  max_size = 10) +
+  guides(size = guide_legend(label.hjust = 0.2)) +
+  theme(legend.position = c(1.15, 0.7),
         legend.title = element_text(margin = margin(b = -4, unit = "pt")))
 
 print(maptPCB)  # Print the plot
 
 # Save map in folder
 ggsave("Output/Maps/Global/maptPCBV01.png", plot = maptPCB,
-       width = 8, height = 4, dpi = 300)
+       width = 14, height = 4, dpi = 300)
 
 # Specific locations ------------------------------------------------------
 # Portland Harbor ---------------------------------------------------------
@@ -125,8 +126,7 @@ ggsave("Output/Maps/Global/maptPCBV01.png", plot = maptPCB,
   # Prepare data
   # Get tPCB and coordinates
   tPCB.PO <- data.frame(cbind(wdc.PO$SiteID, wdc.PO$Latitude,
-                              wdc.PO$Longitude, rowSums(wdc.PO[, c(14:117)],
-                                                        na.rm = TRUE)))
+                              wdc.PO$Longitude, wdc.PO$tPCB))
   # Name the columns
   colnames(tPCB.PO) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -180,13 +180,11 @@ ggsave("Output/Maps/Sites/maptPCBPortlandAveV01.png", plot = maptPCBPO,
   
   # Plot map with sites
   # Prepare data
-  # Remove samples (rows) with total PCBs  = 0
-  wdc.Fox.1 <- wdc.Fox[!(rowSums(wdc.Fox[, c(14:117)],
-                                 na.rm = TRUE)==0),] # sum of PCB1 to PCB209
+  # Remove samples with total PCBs  = 0
+  wdc.Fox.1 <- wdc.Fox[!(wdc.Fox$tPCB) == 0, ]
   # Get tPCB and coordinates
   tPCB.Fox <- data.frame(cbind(wdc.Fox.1$SiteID, wdc.Fox.1$Latitude,
-                               wdc.Fox.1$Longitude,
-                               rowSums(wdc.Fox.1[, c(14:117)], na.rm = TRUE)))
+                               wdc.Fox.1$Longitude, wdc.Fox.1$tPCB))
   # Name the columns
   colnames(tPCB.Fox) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -250,8 +248,7 @@ ggsave("Output/Maps/Sites/maptPCBFoxRiverAveV01.png", plot = maptPCBFoxRiver,
   # Prepare data
   # Get tPCB and coordinates
   tPCB.Hud <- data.frame(cbind(wdc.Hud$SiteID, wdc.Hud$Latitude,
-                               wdc.Hud$Longitude, rowSums(wdc.Hud[, c(14:117)],
-                                                          na.rm = TRUE)))
+                               wdc.Hud$Longitude, wdc.Hud$tPCB))
   # Name the columns
   colnames(tPCB.Hud) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -316,8 +313,7 @@ ggsave("Output/Maps/Sites/maptPCBHudsonRiverAveV01.png", plot = maptPCBHudsonRiv
   # Prepare data
   # Get tPCB and coordinates
   tPCB.Hou <- data.frame(cbind(wdc.Hou$SiteID, wdc.Hou$Latitude,
-                               wdc.Hou$Longitude, rowSums(wdc.Hou[, c(14:117)],
-                                                          na.rm = TRUE)))
+                               wdc.Hou$Longitude, wdc.Hou$tPCB))
   # Name the columns
   colnames(tPCB.Hou) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -375,9 +371,7 @@ ggsave("Output/Maps/Sites/maptPCBHousatonicRiverAveV01.png",
   # Prepare data
   # Get tPCB and coordinates
   tPCB.Kal <- data.frame(cbind(wdc.Kal$SiteID, wdc.Kal$Latitude,
-                               wdc.Kal$Longitude,
-                               rowSums(wdc.Kal[, c(14:117)],
-                                       na.rm = TRUE)))
+                               wdc.Kal$Longitude, wdc.Kal$tPCB))
   # Name the columns
   colnames(tPCB.Kal) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -439,8 +433,7 @@ ggsave("Output/Maps/Sites/maptPCBKalamazooAveV01.png",
   # Prepare data
   # Get tPCB and coordinates
   tPCB.NB <- data.frame(cbind(wdc.NB$SiteID, wdc.NB$Latitude, wdc.NB$Longitude,
-                              rowSums(wdc.NB[, c(14:117)],
-                                      na.rm = TRUE)))
+                              wdc.NB$tPCB))
   # Name the columns
   colnames(tPCB.NB) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -501,9 +494,7 @@ ggsave("Output/Maps/Sites/maptPCBNBHAveV01.png",
   # Prepare data
   # Get tPCB and coordinates
   tPCB.Spo <- data.frame(cbind(wdc.Spo$SiteID, wdc.Spo$Latitude,
-                               wdc.Spo$Longitude,
-                               rowSums(wdc.Spo[, c(14:117)],
-                                       na.rm = TRUE)))
+                               wdc.Spo$Longitude, wdc.Spo$tPCB))
   # Name the columns
   colnames(tPCB.Spo) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -564,9 +555,7 @@ ggsave("Output/Maps/Sites/maptPCBSpoAveV01.png",
   # Prepare data
   # Get tPCB and coordinates
   tPCB.Che <- data.frame(cbind(wdc.Che$SiteID, wdc.Che$Latitude,
-                               wdc.Che$Longitude,
-                               rowSums(wdc.Che[, c(14:117)],
-                                       na.rm = TRUE)))
+                               wdc.Che$Longitude, wdc.Che$tPCB))
   # Name the columns
   colnames(tPCB.Che) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
@@ -620,14 +609,11 @@ ggsave("Output/Maps/Sites/maptPCBCheAveV01.png",
   
   # Plot map with sites
   # Prepare data
-  # Remove samples (rows) with total PCBs  = 0
-  wdc.Blu.1 <- wdc.Blu[!(rowSums(wdc.Blu[, c(14:117)],
-                                 na.rm = TRUE)==0),] # sum of PCB1 to PCB209
+  # Remove samples with total PCBs  = 0
+  wdc.Blu.1 <- wdc.Blu[!(wdc.Blu$tPCB) == 0, ]
   # Get tPCB and coordinates
   tPCB.Blu <- data.frame(cbind(wdc.Blu.1$SiteID, wdc.Blu.1$Latitude,
-                               wdc.Blu.1$Longitude,
-                               rowSums(wdc.Blu.1[, c(14:117)],
-                                       na.rm = TRUE)))
+                               wdc.Blu.1$Longitude, wdc.Blu.1$tPCB))
   # Name the columns
   colnames(tPCB.Blu) <- c("SiteID", "Latitude", "Longitude", "tPCB")
   # Change no numeric to numeric
