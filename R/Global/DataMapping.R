@@ -63,7 +63,7 @@ states <- map_data("state")
 }
 
 # (1) Map of US with locations
-ggplot() +
+maploc <- ggplot() +
   geom_polygon(data = us, aes(x = long, y = lat, group = group),
                color = "black", fill = "lightblue") +
   coord_fixed(1.3) +
@@ -71,13 +71,19 @@ ggplot() +
   xlab("Longitude") +
   ylab("Latitude") +
   geom_path(data = states, aes(x = long, y = lat, group = group),
-             colour = "white") +
+            colour = "white")+
   geom_polygon(color = "black", fill = NA) +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
-  annotate(geom = 'table', x = -65, y = 53,
+  annotate(geom = 'table', x = -55, y = 53,
            label = list(wdc.3), size = 2.9) # add table with info
+
+print(maploc)  # Print the plot
+
+# Save map in folder
+ggsave("Output/Maps/Global/maplocV01.png", plot = maploc,
+       width = 9, height = 4, dpi = 300)
 
 # (2) Map + tPCB
 maptPCB <- ggplot() +
