@@ -36,6 +36,83 @@ install.packages("reshape")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor08212023.csv")
 
+# General information -----------------------------------------------------
+# Number of locations and number of site per location
+location_count <- wdc %>%
+  group_by(LocationName) %>%
+  summarise(count = n())
+
+print(location_count)
+# Median amount of samples per location
+median(location_count$count)
+
+# Number of locations per states
+state_count <- wdc %>%
+  group_by(StateSampled) %>%
+  summarise(count = n())
+
+print(state_count)
+
+# Number of sites and number of replicates per site
+site_count <- wdc %>%
+  group_by(SiteID) %>%
+  summarise(count = n())
+
+print(site_count)
+
+# Media of number of site available
+median(site_count$count)
+
+# Number of replicates per sites from the same day
+site_repli_count <- wdc %>%
+  group_by(SampleID) %>%
+  summarise(count = n())
+
+print(site_repli_count)
+
+# Media of number of replicates per sites from the same day
+median(site_repli_count$count)
+
+# Find the SampleID with the highest count
+max_count_sample <- site_repli_count %>%
+  filter(count == max(count)) %>%
+  pull(SampleID)
+
+filtered_wdc <- wdc %>%
+  filter(SampleID == max_count_sample)
+
+# Extract Site Name
+extracted_string <- filtered_wdc %>%
+  select(SiteName) %>%
+  pull()
+
+# Display Site Name
+print(extracted_string[1])
+
+# Aroclor summary ---------------------------------------------------------
+# Number of samples analyzed using Aroclor method
+count_Aroclor <- sum(wdc$AroclorCongener == "Aroclor")
+total_samples <- length(wdc[,1])
+percent_aroclor <- count_Aroclor/total_samples*100
+
+# Calculate sample % for each Aroclor mixtures
+aroclors <- c('A1016', 'A1221', 'A1232', 'A1242', 'A1248',
+              'A1254', 'A1260')
+
+# Calculate the number of non-NA values (frequency of numbers) in each Aroclor
+frequency_aroclors <- lapply(wdc[aroclors], function(column) {
+  length(na.omit(column))
+})
+
+# Print the results for each Aroclor in %
+for (i in seq_along(aroclors)) {
+  column_name <- aroclors[i]
+  print(paste(column_name))
+  print(frequency_aroclors[[i]]/count_Aroclor*100)
+}
+
+
+
 # Data preparation --------------------------------------------------------
 # (1) All data, including 0s
 {
