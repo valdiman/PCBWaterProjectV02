@@ -36,16 +36,11 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08212023.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 # Extract sample site locations -------------------------------------------
-# Data preparation
-{
-  # Remove samples (rows) with total PCBs  = 0
-  wdc.1 <- wdc[!(wdc$tPCB) == 0, ]
-  # Average tPCB per sample site
-  tpcb.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
-                        data = wdc.1, mean)
-}
+# Average tPCB per sample site
+tpcb.ave <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
+                      data = wdc, mean)
 
 # USA/State maps -------------------------------------------------------------
 us <- map_data("usa")
