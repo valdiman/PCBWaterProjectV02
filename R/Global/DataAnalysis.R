@@ -479,7 +479,7 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", size = 0.7) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
   geom_abline(intercept = 0.30103, slope = 1, col = "blue",
               linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = -0.30103, slope = 1, col = "blue",
@@ -490,16 +490,16 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
 print(tPCBObsPred)  # Print the plot
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBObsPredV01.png", plot = tPCBObsPred,
-       width = 5, height = 5, dpi = 300)
+ggsave("Output/Plots/Global/tPCBObsPredV02.png", plot = tPCBObsPred,
+       width = 8, height = 6, dpi = 300)
 
 # Plot residuals vs. predictions
   {
     # Open a PNG graphics device
-    png("Output/Plots/Global/res_plotlmetPCBV01.png", width = 800, height = 300)
+    png("Output/Plots/Global/res_plotlmetPCBV01.png", width = 800, height = 600)
     # Create your plot
-    plot(tpcb$lmepredicted, res.tpcb,
-         points(tpcb$lmepredicted, res.tpcb, pch = 16, col = "#66ccff"),
+    plot(tpcb$lmepredicted, resid(lmem.tpcb),
+         points(tpcb$lmepredicted, resid(lmem.tpcb), pch = 16, col = "#66ccff"),
          ylim = c(-4, 4),
          xlim = c(1, 10^6.1),
          xlab = expression(paste("Predicted lme concentration ",
