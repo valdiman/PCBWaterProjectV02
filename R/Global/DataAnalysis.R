@@ -302,15 +302,14 @@ ggsave("Output/Plots/Global/PCBiBoxPlotV01.png", plot = PCBi_boxplot,
 # (1) Time trend plots
 plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
                                    x = format(date,'%Y'))) +
-  geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
-  theme(aspect.ratio = 5/20) +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
   xlab("") +
   ylab(expression(bold(atop("Water Concentration",
                             paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
+  theme_classic() +
+  annotation_logticks(sides = "l") +
   theme(axis.text.x = element_text(face = "bold", size = 9,
                                    angle = 60, hjust = 1,
                                    color = "black")) +
@@ -319,9 +318,9 @@ plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
 
 print(plot.time.tPCB)  # Print the plot
 
-# Save map in folder
-ggsave("Output/Plots/Global/tPCBTimeV01.png", plot = plot.time.tPCB,
-       width = 10, height = 5, dpi = 300)
+# Save plot in folder
+ggsave("Output/Plots/Global/tPCBTimeV02.png", plot = plot.time.tPCB,
+       width = 10, height = 3, dpi = 300)
 
 # (2) Seasonality
 ggplot(tpcb, aes(x = season, y = tPCB)) +
@@ -357,16 +356,20 @@ season <- tpcb$season
 lr.tpcb.t <- lm(log10(tPCB) ~ time)
 # See results
 summary(lr.tpcb.t)
-# Look at residuals
+# Plot residuals. Create a Q-Q plot and save it.
 {
+  # Create a new PNG graphics device
+  png("Output/Plots/Global/qq_plotlrtPCBV01.png", width = 800, height = 600)
   res <- resid(lr.tpcb.t) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res)
+  qqnorm(res,
+         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
+                                 "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res)
+  # Close the PNG device
+  dev.off()
 }
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -374,10 +377,10 @@ fit.values.lr.tpcb <- as.data.frame(fitted(lr.tpcb.t))
 # Add column name
 colnames(fit.values.lr.tpcb) <- c("lr.predicted")
 # Add predicted values to data.frame
-tpcb$lrpredicted <- 10^(fit.values.lr.tpcb$lr.predicted)
+tpcb$lr.predicted <- 10^(fit.values.lr.tpcb$lr.predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(tpcb, aes(x = tPCB, y = lrpredicted)) +
+ggplot(tpcb, aes(x = tPCB, y = lr.predicted)) +
   geom_point(shape = 21, size = 2, fill = "#66ccff") +
   scale_y_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -386,7 +389,7 @@ ggplot(tpcb, aes(x = tPCB, y = lrpredicted)) +
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lr concentration " *Sigma*"PCB (pg/L)"))) +
   geom_abline(intercept = 0, slope = 1, col = "black", size = 1) +
   geom_abline(intercept = 0.30103, slope = 1, col = "blue",
               linewidth = 0.8) + # 1:2 line (factor of 2)
@@ -395,7 +398,6 @@ ggplot(tpcb, aes(x = tPCB, y = lrpredicted)) +
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
-
 
 # (2) tPCB vs. season
 lr.tpcb.s <- lm(log10(tPCB) ~ season)
@@ -409,8 +411,6 @@ summary(lr.tpcb.s)
   # Add a straight diagonal line to the plot
   qqline(res)
 }
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
 
 # (3) MLR
 mlr.tpcb <- lm(log10(tPCB) ~ time + season)
@@ -424,8 +424,6 @@ summary(mlr.tpcb)
   # Add a straight diagonal line to the plot
   qqline(res)
 }
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
 
 # (4) Perform Linear Mixed-Effects Model (lme)
 lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
@@ -436,24 +434,24 @@ lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
 
 # See results
 summary(lmem.tpcb)
-# Look at residuals
+#Create a Q-Q plot and save it.
 {
-  res.tpcb <- resid(lmem.tpcb) # get list of residuals
+  # Create a new PNG graphics device
+  png("Output/Plots/Global/qq_plotlmetPCBV01.png", width = 800, height = 600)
+  res <- resid(lmem.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.tpcb, main = "log10(C)")
-  qqnorm(res.tpcb,
+  qqnorm(res,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
-  qqline(res.tpcb)
+  qqline(res)
+  # Close the PNG device
+  dev.off()
 }
-# One-sample Kolmogorov-Smirnov test
-ks.test(res, 'pnorm')
 # Extract R2 no random effect
 R2.nre <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2m']
 # Extract R2 with random effect
 R2.re <- as.data.frame(r.squaredGLMM(lmem.tpcb))[1, 'R2c']
-
 # Extract coefficient values
 time.coeff <- summary(lmem.tpcb)$coef[2, "Estimate"]
 time.coeff.ste <- summary(lmem.tpcb)$coef[2, "Std. Error"]
@@ -471,7 +469,7 @@ colnames(fit.values.tpcb) <- c("lme.predicted")
 tpcb$lmepredicted <- 10^(fit.values.tpcb$lme.predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
+tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
   geom_point(shape = 21, size = 2, fill = "#66ccff") +
   scale_y_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
@@ -481,29 +479,40 @@ ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "black", size = 1) +
+  geom_abline(intercept = 0, slope = 1, col = "black", size = 0.7) +
   geom_abline(intercept = 0.30103, slope = 1, col = "blue",
-              linewidth = 0.8) + # 1:2 line (factor of 2)
+              linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = -0.30103, slope = 1, col = "blue",
-              linewidth = 0.8) + # 2:1 line (factor of 2)
+              linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
-  theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl")
 
+print(tPCBObsPred)  # Print the plot
+
+# Save plot in folder
+ggsave("Output/Plots/Global/tPCBObsPredV01.png", plot = tPCBObsPred,
+       width = 5, height = 5, dpi = 300)
+
 # Plot residuals vs. predictions
-{
-  plot(tpcb$lmepredicted, res.tpcb,
-       points(tpcb$lmepredicted, res.tpcb, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-4, 4),
-       xlim = c(1, 9^5),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  abline(0, 0)
-  abline(h = seq(-4, 4, 1), col = "grey")
-  abline(v = seq(1, 60001, 10000), col = "grey")
+  {
+    # Open a PNG graphics device
+    png("Output/Plots/Global/res_plotlmetPCBV01.png", width = 800, height = 300)
+    # Create your plot
+    plot(tpcb$lmepredicted, res.tpcb,
+         points(tpcb$lmepredicted, res.tpcb, pch = 16, col = "#66ccff"),
+         ylim = c(-4, 4),
+         xlim = c(1, 10^6.1),
+         xlab = expression(paste("Predicted lme concentration ",
+                                 Sigma, "PCB (pg/L)")),
+         ylab = "Residual")
+    # Add lines to the plot
+    abline(0, 0)
+    abline(h = seq(-4, 4, 1), col = "grey")
+    abline(v = seq(0, 1200000, 200000), col = "grey")
+    # Close the PNG graphics device
+    dev.off()
   }
+
 
 
 # Spatial Plots and Analysis ----------------------------------------------
