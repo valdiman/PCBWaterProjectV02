@@ -34,7 +34,7 @@ install.packages("reshape")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08212023.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # General information -----------------------------------------------------
 # Number of locations and number of site per location
@@ -104,22 +104,19 @@ frequency_aroclors <- lapply(wdc[aroclors], function(column) {
   length(na.omit(column))
 })
 
-# Print the results for each Aroclor in %
+# Percentage of Aroclor mixtures in relation to all Aroclors
 for (i in seq_along(aroclors)) {
   column_name <- aroclors[i]
   print(paste(column_name))
   print(frequency_aroclors[[i]]/count_Aroclor*100)
 }
 
-
-
-# Data preparation --------------------------------------------------------
-# (1) All data, including 0s
+# Congener frequency ------------------------------------------------------
 {
   # Remove metadata
-  wdc.1 <- subset(wdc, select = -c(SampleID:AroclorCongener))
+  wdc.nmd <- subset(wdc, select = -c(SampleID:AroclorCongener)) #nmd = no meta data
   # Remove Aroclor data
-  wdc.1 <- subset(wdc.1, select = -c(A1016:A1260))
+  wdc.nmd <- subset(wdc.nmd, select = -c(A1016:A1260))
   # (2) Only consider congener data
   wdc.cong <- subset(wdc, AroclorCongener == "Congener")
   # Remove metadata
@@ -128,8 +125,6 @@ for (i in seq_along(aroclors)) {
   wdc.cong.1 <- subset(wdc.cong.1, select = -c(A1016:tPCB))
 }
 
-# Frequency analysis ------------------------------------------------------
-# Just congener data
 # Create a frequency detection plot
 {
   wdc.cong.freq <- colSums(! is.na(wdc.cong.1) & (wdc.cong.1 !=0))/nrow(wdc.cong.1)
@@ -172,21 +167,19 @@ ggsave("Output/Plots/Global/FreqPCBV01.png", plot = plot.cong.freq,
 # Total Concentration Analysis --------------------------------------------
 # Data preparation
 {
-  # Remove samples with total PCBs  = 0
-  wdc.2 <- wdc[!(wdc$tPCB) == 0, ]
   # Change date format
-  wdc.2$SampleDate <- as.Date(wdc.2$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(wdc$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(wdc.2$SampleDate) - min(as.Date(wdc.2$SampleDate)))
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- wdc.2$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- wdc$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(wdc.2$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(wdc$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  tpcb <- cbind(factor(wdc.2$SiteID), wdc.2$SampleDate,
-                wdc.2$Latitude, wdc.2$Longitude, wdc.2$tPCB,
+  tpcb <- cbind(factor(wdc$SiteID), SampleDate,
+                wdc$Latitude, wdc$Longitude, wdc$tPCB,
                 data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
@@ -199,8 +192,13 @@ location <- tpcb[c('SiteID', 'Latitude', 'Longitude', 'tPCB')]
 location <- aggregate(tPCB ~ SiteID + Latitude + Longitude,
                       data = location, mean)
 
-# Summary statistic of total PCB (congeners + Aroclor) in pg/L
-summary(rowSums(wdc.1, na.rm = T))
+# Summary statistic of total PCB (congeners + Aroclor) in pg/L not including 0s
+summary(wdc$tPCB)
+
+# Highest sample location and time
+max_sample <- wdc[which.max(wdc$tPCB), ]
+max_sample <- max_sample[c("LocationName", "SampleDate", "SiteName")]
+print(max_sample)
 
 # Global plots ------------------------------------------------------------
 # Histogram
@@ -231,7 +229,8 @@ plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) +
   geom_hline(yintercept = 64, color = "#CC6666",
              linewidth = 0.8) # associated with an incremental cancer risk of 10−6.
 
-print(plot.box.tPCB)  # Print the plot
+# Print the plot
+print(plot.box.tPCB)
 
 # Save map in folder
 ggsave("Output/Plots/Global/tPCBBoxPlotV01.png", plot = plot.box.tPCB,
@@ -247,14 +246,26 @@ summary(wdc.cong.1, na.rm = T, zero = T)
 cong.max <-as.numeric(sub('.*:', '',
                           summary(wdc.cong.1, na.rm = T,
                                   zero = T)[6,]))
+# Add congener
+cong.max <- cbind(congener, data.frame(cong.max))
+
 
 # Obtain the median for each individual congener
 cong.median <- as.numeric(sub('.*:',
                               '', summary(wdc.cong.1, na.rm = T,
                                           zero = T)[3,]))
+# Add congener
+cong.median <- cbind(congener, data.frame(cong.median))
+
+# Min
+print(min(cong.median$cong.median))
+#Max
+print(max(cong.median$cong.median))
+# Mean
+print(mean(cong.median$cong.median))
 
 # Individual PCB boxplot
-ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
+PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   geom_boxplot(width = 0.6, shape = 21, outlier.fill = "#66ccff",
@@ -279,72 +290,18 @@ ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
                       mid = unit(1.5, "mm"),
                       long = unit(2, "mm"))
 
-# Spatial Plots and Analysis ----------------------------------------------
-# Modify x-axis
-# States. Needs work
-sites <- c("CA", "DE", "ID", "IN", "MA", "MD", "MI", "MO",
-           "MT", "NM", "NY", "OH", "OR", "TX", "VA", "WA", "WI")
+# Print the plot
+print(PCBi_boxplot)
 
-# Total PCBs
-ggplot(wdc.2, aes(x = factor(StateSampled, levels = sites),
-                y = rowSums(wdc.2[, c(14:117)],  na.rm = T))) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2019 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
-  geom_hline(yintercept = 0.64*1000, color = "#9999CC",
-             size = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
-  geom_hline(yintercept = 0.064*1000, color = "#CC6666",
-             size = 0.8) # associated with an incremental cancer risk of 10−6.
-
-# Selected StateSampled and individual PCB congener
-wdc.pcbi <- subset(wdc, select = c(StateSampled, PCB4.10))
-# Remove samples with 0s
-wdc.pcbi <- wdc.pcbi[!(wdc.pcbi[2] == 0), ]
-# Remove samples this NA
-wdc.pcbi <- wdc.pcbi[!is.na(wdc.pcbi[2]),]
-# Plot
-ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
-                   y = PCB4.10)) + 
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  xlab(expression("")) +
-  theme(aspect.ratio = 5/20) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste("PCB 4+10 1990 - 2019 (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 9)) +
-  theme(axis.text.x = element_text(face = "bold", size = 8,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
-        axis.ticks.length = unit(0.2, "cm")) +
-  annotation_logticks(sides = "l") +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
-  geom_hline(yintercept = 0.03, color = "#cc0000") # median 
+# Save map in folder
+ggsave("Output/Plots/Global/PCBiBoxPlotV01.png", plot = PCBi_boxplot,
+       width = 10, height = 5, dpi = 300)
 
 # Regression analysis and plots---------------------------------------------
 # Plots
 # (1) Time trend plots
 plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
+                                   x = format(date,'%Y'))) +
   geom_point(shape = 21, cex = 1.2, fill = "#66ccff") +
   theme(aspect.ratio = 5/20) +
   xlab("") +
@@ -375,19 +332,20 @@ ggplot(tpcb, aes(x = season, y = tPCB)) +
   theme_bw() +
   theme(aspect.ratio = 5/15) +
   ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB 1990 - 2020 (pg/L)"))))) +
+                            paste(Sigma*"PCB 1979 - 2020 (pg/L)"))))) +
   theme(axis.text.y = element_text(face = "bold", size = 9),
         axis.title.y = element_text(face = "bold", size = 9)) +
   theme(axis.text.x = element_text(face = "bold", size = 8,
                                    angle = 60, hjust = 1),
         axis.title.x = element_text(face = "bold", size = 8)) +
-  theme(axis.ticks = element_line(size = 0.8, color = "black"), 
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
+# Check this!!
 # Regressions -------------------------------------------------------------
 # Get variables
 tPCB <- tpcb$tPCB
@@ -409,6 +367,35 @@ summary(lr.tpcb.t)
 }
 # One-sample Kolmogorov-Smirnov test
 ks.test(res, 'pnorm')
+
+# Modeling plots
+# (1) Get predicted values tpcb
+fit.values.lr.tpcb <- as.data.frame(fitted(lr.tpcb.t))
+# Add column name
+colnames(fit.values.lr.tpcb) <- c("lr.predicted")
+# Add predicted values to data.frame
+tpcb$lrpredicted <- 10^(fit.values.lr.tpcb$lr.predicted)
+
+# Plot prediction vs. observations, 1:1 line
+ggplot(tpcb, aes(x = tPCB, y = lrpredicted)) +
+  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  scale_y_log10(limits = c(0.1, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(0.1, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", size = 1) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.8) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.8) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl")
+
 
 # (2) tPCB vs. season
 lr.tpcb.s <- lm(log10(tPCB) ~ season)
@@ -442,10 +429,10 @@ ks.test(res, 'pnorm')
 
 # (4) Perform Linear Mixed-Effects Model (lme)
 lmem.tpcb <- lmer(log10(tPCB) ~ 1 + time + season + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE = "ignore"))
+                  REML = FALSE,
+                  control = lmerControl(check.nobs.vs.nlev = "ignore",
+                                        check.nobs.vs.rankZ = "ignore",
+                                        check.nobs.vs.nRE = "ignore"))
 
 # See results
 summary(lmem.tpcb)
@@ -516,5 +503,72 @@ ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
   abline(0, 0)
   abline(h = seq(-4, 4, 1), col = "grey")
   abline(v = seq(1, 60001, 10000), col = "grey")
-}
+  }
+
+
+# Spatial Plots and Analysis ----------------------------------------------
+# States
+sites <- c("CA", "CT", "DC*", "DE", "ID", "IN", "MA", "MD", "MI", "MO",
+           "MT", "NM", "NY", "OH", "ON*", "OR", "PA", "TX", "VA", "WA", "WI")
+
+# Total PCBs
+tpcb.state <- ggplot(wdc, aes(x = factor(StateSampled, levels = sites),
+                y = tPCB)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 5/20) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste(Sigma*"PCB 1979 - 2019 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0) +
+  geom_hline(yintercept = 640, color = "#9999CC",
+             size = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
+  geom_hline(yintercept = 64, color = "#CC6666",
+             size = 0.8) # associated with an incremental cancer risk of 10−6.
+
+print(tpcb.state)
+
+# Save map in folder
+ggsave("Output/Plots/Global/tPCBStateV01.png", plot = tpcb.state,
+       width = 10, height = 5, dpi = 300)
+
+# Selected StateSampled and individual PCB congener
+wdc.pcbi <- subset(wdc, select = c(StateSampled, PCB5.8))
+# Remove samples with 0s
+wdc.pcbi <- wdc.pcbi[!(wdc.pcbi[2] == 0), ]
+# Remove samples this NA
+wdc.pcbi <- wdc.pcbi[!is.na(wdc.pcbi[2]),]
+# Plot
+ggplot(wdc.pcbi, aes(x = factor(StateSampled, levels = sites),
+                   y = PCB5.8)) + 
+  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  theme_bw() +
+  xlab(expression("")) +
+  theme(aspect.ratio = 5/20) +
+  ylab(expression(bold(atop("Water Concentration",
+                            paste("PCB 4+10 1979 - 2019 (pg/L)"))))) +
+  theme(axis.text.y = element_text(face = "bold", size = 9),
+        axis.title.y = element_text(face = "bold", size = 9)) +
+  theme(axis.text.x = element_text(face = "bold", size = 8,
+                                   angle = 60, hjust = 1),
+        axis.title.x = element_text(face = "bold", size = 8)) +
+  theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
+        axis.ticks.length = unit(0.2, "cm")) +
+  annotation_logticks(sides = "l") +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "#66ccff") +
+  geom_boxplot(lwd = 0.5, width = 0.7, outlier.shape = NA, alpha = 0)
+
 
