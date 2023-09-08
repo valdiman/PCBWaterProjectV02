@@ -38,7 +38,7 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Fox River data ---------------------------------------------------
 fox.0 <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
