@@ -306,7 +306,7 @@ ggsave("Output/Maps/Sites/maptPCBHudsonRiverAveV01.png", plot = maptPCBHudsonRiv
   Hou.box <- make_bbox(
     lon = c(min(wdc.Hou$Longitude) - lon_range, max(wdc.Hou$Longitude) + lon_range),
     lat = wdc.Hou$Latitude,
-    f = 0.2)
+    f = 0.4)
   # Fetch the map using the new bounding box
   Hou.map <- get_stamenmap(bbox = Hou.box, zoom = 8)
   
@@ -346,18 +346,18 @@ maptPCBHouRiver <- ggmap(Hou.map) +
            label = 'Housatonic River (CT+MA)', colour = 'black', size = 2.8,
            fontface = 2) +
   scale_size_area(
-    breaks = c(50, 250, 500, 1000, 1500),
+    breaks = c(50000, 100000, 200000, 300000, 400000),
     labels = comma,
-    name = expression(bold(Sigma*"PCBs (mean) 2005-2017 (pg/L)")),
+    name = expression(bold(Sigma*"PCBs (mean) 1979-2020 (pg/L)")),
     max_size = 8) +
   guides(size = guide_legend(label.hjust = 0.5)) +
-  theme(legend.position = c(1.9, 0.75),  # Adjust the legend position (x, y)
+  theme(legend.position = c(1.8, 0.78),  # Adjust the legend position (x, y)
         legend.box.just = "center",  # Center the legend inside the bounding box
         legend.title = element_text(margin = margin(b = -1, unit = "pt")))
 
 # Save map in folder
-ggsave("Output/Maps/Sites/maptPCBHousatonicRiverAveV01.png",
-       plot = maptPCBHouRiver, width = 9, height = 4, dpi = 300)
+ggsave("Output/Maps/Sites/maptPCBHousatonicRiverAveV02.png",
+       plot = maptPCBHouRiver, width = 8, height = 4, dpi = 300)
 
 # Kalamazoo River ---------------------------------------------------------
 {
