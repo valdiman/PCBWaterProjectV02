@@ -39,8 +39,8 @@ ggsave("Output/Figures/Sites/FoxRiver.png",
 
 # Housatonic River --------------------------------------------------------
 # Read the PNG images
-mapHR <- readPNG("Output/Maps/Sites/maptPCBHousatonicRiverAveV01.png")
-plotHR <- readPNG("Output/Plots/Sites/Temporal/plotHousRiverTime.png")
+mapHR <- readPNG("Output/Maps/Sites/maptPCBHousatonicRiverAveV02.png")
+plotHR <- readPNG("Output/Plots/Sites/Temporal/plotHousRiverTimeV02.png")
 
 # Create a plot with a smaller canvas
 p <- ggplot() +
@@ -51,15 +51,15 @@ p <- ggplot() +
 p <- p +
   annotation_custom(rasterGrob(mapHR),
                     xmin = 0, xmax = 5, ymin = 1, ymax = 6) +
-  annotation_custom(rasterGrob(plotHR, width = unit(8*0.5, "cm"),
-                               height = unit(5*0.5, "cm")),
-                    xmin = 3, xmax = 5, ymin = 1.5, ymax = 3.9)
+  annotation_custom(rasterGrob(plotHR, width = unit(18*0.38, "cm"),
+                               height = unit(8*0.38, "cm")),
+                    xmin = 3.64, xmax = 5.64, ymin = 1.5, ymax = 3.9)
 
 # Print the plot
 print(p)
 
 # Save plot directly to a PNG file
-ggsave("Output/Figures/Sites/HousatonicRiver.png",
+ggsave("Output/Figures/Sites/HousatonicRiverV02.png",
        plot = p, width = 6, height = 4, dpi = 1000)
 
 # Portland Harbor ---------------------------------------------------------
