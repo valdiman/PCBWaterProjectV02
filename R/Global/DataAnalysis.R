@@ -206,10 +206,13 @@ hist(tpcb$tPCB)
 hist(log10(tpcb$tPCB))
 
 ## Total PCBs in 1 box plot
-## include 64 pg/L from EPA
+## include 64 and 640 pg/L from EPA
 plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
+  geom_jitter(position = position_jitter(0.3), cex = 1.2,
+              shape = 21, fill = "white") +
+  geom_boxplot(lwd = 0.8, width = 0.7, outlier.shape = NA, alpha = 0) +
   theme_classic() +
   theme(aspect.ratio = 14/2) +
   xlab(expression(bold(Sigma*"PCB")))+
@@ -220,20 +223,17 @@ plot.box.tPCB <- ggplot(tpcb, aes(x = "", y = tPCB)) +
         axis.title.x = element_text(face = "bold", size = 14, vjust = 5)) +
   theme(axis.ticks = element_line(linewidth = 0.8, color = "black"), 
         axis.ticks.length = unit(0.2, "cm")) +
-  geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
-  geom_boxplot(lwd = 1.2, width = 0.7, outlier.shape = NA, alpha = 0) +
   annotation_logticks(sides = "l") +
   geom_hline(yintercept = 640, color = "#9999CC",
-             linewidth = 0.8) + # U.S. EPA Water Quality Criterion for Human Health from fish consumption, associated with an incremental cancer risk of 10−5
+             linewidth = 0.8) +
   geom_hline(yintercept = 64, color = "#CC6666",
-             linewidth = 0.8) # associated with an incremental cancer risk of 10−6.
+             linewidth = 0.8)
 
-# Print the plot
+# Print or save the plot
 print(plot.box.tPCB)
 
 # Save map in folder
-ggsave("Output/Plots/Global/tPCBBoxPlotV01.png", plot = plot.box.tPCB,
+ggsave("Output/Plots/Global/tPCBBoxPlotV02.png", plot = plot.box.tPCB,
        width = 5, height = 10, dpi = 300)
 
 # Calculate % samples above both EPA thresholds
@@ -248,7 +248,6 @@ cong.max <-as.numeric(sub('.*:', '',
                                   zero = T)[6,]))
 # Add congener
 cong.max <- cbind(congener, data.frame(cong.max))
-
 
 # Obtain the median for each individual congener
 cong.median <- as.numeric(sub('.*:',
@@ -268,8 +267,8 @@ print(mean(cong.median$cong.median))
 PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  geom_boxplot(width = 0.6, shape = 21, outlier.fill = "#66ccff",
-               fill = "#66ccff", outlier.shape = 21) +
+  geom_boxplot(width = 0.6, shape = 21, outlier.fill = "white",
+               fill = "white", outlier.shape = 21) +
   scale_x_discrete(labels = wdc.cong.freq$congener) + # use to change the "." to "+"
   theme_bw() +
   theme(aspect.ratio = 25/135) +
@@ -294,7 +293,7 @@ PCBi_boxplot <- ggplot(stack(wdc.cong.1), aes(x = ind, y = values)) +
 print(PCBi_boxplot)
 
 # Save map in folder
-ggsave("Output/Plots/Global/PCBiBoxPlotV01.png", plot = PCBi_boxplot,
+ggsave("Output/Plots/Global/PCBiBoxPlotV02.png", plot = PCBi_boxplot,
        width = 10, height = 5, dpi = 300)
 
 # Regression analysis and plots---------------------------------------------
@@ -470,7 +469,7 @@ tpcb$lmepredicted <- 10^(fit.values.tpcb$lme.predicted)
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+  geom_point(shape = 21, size = 2, fill = "white") +
   scale_y_log10(limits = c(0.1, 10^8),
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -490,7 +489,7 @@ tPCBObsPred <- ggplot(tpcb, aes(x = tPCB, y = lmepredicted)) +
 print(tPCBObsPred)  # Print the plot
 
 # Save plot in folder
-ggsave("Output/Plots/Global/tPCBObsPredV02.png", plot = tPCBObsPred,
+ggsave("Output/Plots/Global/tPCBObsPredV03.png", plot = tPCBObsPred,
        width = 8, height = 6, dpi = 300)
 
 # Plot residuals vs. predictions
@@ -499,7 +498,7 @@ ggsave("Output/Plots/Global/tPCBObsPredV02.png", plot = tPCBObsPred,
     png("Output/Plots/Global/res_plotlmetPCBV01.png", width = 800, height = 600)
     # Create your plot
     plot(tpcb$lmepredicted, resid(lmem.tpcb),
-         points(tpcb$lmepredicted, resid(lmem.tpcb), pch = 16, col = "#66ccff"),
+         points(tpcb$lmepredicted, resid(lmem.tpcb), pch = 16, col = "white"),
          ylim = c(-4, 4),
          xlim = c(1, 10^6.1),
          xlab = expression(paste("Predicted lme concentration ",
@@ -513,7 +512,7 @@ ggsave("Output/Plots/Global/tPCBObsPredV02.png", plot = tPCBObsPred,
     dev.off()
   }
 
-
+#Until here!
 
 # Spatial Plots and Analysis ----------------------------------------------
 # States
