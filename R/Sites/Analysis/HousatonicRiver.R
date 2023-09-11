@@ -97,21 +97,21 @@ HRTime <- ggplot(hou.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
-    breaks = c(1, 10, 100, 1000, 10000, 100000),  # Specify the desired breaks
-    labels = label_comma()(c(1, 10, 100, 1000, 10000, 100000))  # Specify the desired labels
+    breaks = c(10000, 100000, 1000000, 10000000),  # Specify the desired breaks
+    labels = label_comma()(c(10000, 100000, 1000000, 10000000))  # Specify the desired labels
   ) +
   theme_classic() +
   ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
   theme(
-    axis.text.y = element_text(face = "bold", size = 20),
-    axis.title.y = element_text(face = "bold", size = 18),
-    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.text.y = element_text(face = "bold", size = 22),
+    axis.title.y = element_text(face = "bold", size = 20),
+    axis.text.x = element_text(size = 24, angle = 60, hjust = 1),
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotHousRiverTime.png",
-       plot = HRTime, width = 8, height = 5, dpi = 500)
+ggsave("Output/Plots/Sites/Temporal/plotHousRiverTimeV02.png",
+       plot = HRTime, width = 18, height = 8, dpi = 500)
 
 # (3) Seasonality
 ggplot(hou.tpcb, aes(x = season, y = tPCB)) +
