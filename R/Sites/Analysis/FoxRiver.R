@@ -40,28 +40,24 @@ install.packages("scales")
 # Data in pg/L
 wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
-# Select Fox River data ---------------------------------------------------
-fox.0 <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
+# Select Housatonic River data ---------------------------------------------------
+fox <- wdc[str_detect(wdc$LocationName, 'Fox River'),]
 # Lake Winnebago is a background site.
 # Data preparation --------------------------------------------------------
 {
-  # Remove samples (rows) with total PCBs  = 0
-  fox.1 <- fox.0[!(rowSums(fox.0[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb.fox <- rowSums(fox.1[, c(14:117)], na.rm = T)
   # Change date format
-  fox.1$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
+  fox$SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(fox.1$SampleDate) - min(as.Date(fox.1$SampleDate)))
+  time.day <- data.frame(as.Date(fox$SampleDate) - min(as.Date(fox$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- fox.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- fox$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(fox.1$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  fox.tpcb <- cbind(factor(fox.1$SiteID), fox.1$SampleDate,
-                    fox.1$Latitude, fox.1$Longitude, as.matrix(tpcb.fox),
+  fox.tpcb <- cbind(factor(fox$SiteID), fox$SampleDate,
+                    fox$Latitude, fox$Longitude, as.matrix(fox$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(fox.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
@@ -96,6 +92,9 @@ FRTime <- ggplot(fox.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
+# Print the plot
+print(FRTime)
+
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTime.png",
        plot = FRTime, width = 6, height = 5, dpi = 500)
@@ -119,7 +118,7 @@ ggplot(fox.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 10^5, label = "Fox River",
            size = 3)
@@ -142,41 +141,46 @@ ggplot(fox.tpcb, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 7.8, y = 10^5, label = "Fox River",
            size = 3)
 
 # Remove site -------------------------------------------------------------
 # Remove site Lake Winnebago (background site)
-fox.tpcb.2 <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
+fox.tpcb.1 <- subset(fox.tpcb, SiteID != c("WCPCB-FOX001"))
 
 # Plots w/o Lake Winnebago ------------------------------------------------
 # (1) Histograms
-hist(fox.tpcb.2$tPCB)
-hist(log10(fox.tpcb.2$tPCB))
+hist(fox.tpcb.1$tPCB)
+hist(log10(fox.tpcb.1$tPCB))
 
 # (2) Time trend plots
-ggplot(fox.tpcb.2, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, fill = "#66ccff") +
+FRTime.1 <- ggplot(fox.tpcb.1, aes(y = tPCB, x = format(date, '%Y'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 5.8, y = 10^5, label = "Fox River",
-           size = 3)
+  scale_y_log10(
+    breaks = c(1, 10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(1, 10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print the plot
+print(FRTime.1)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotFoxRiverTimeV02.png",
+       plot = FRTime.1, width = 6, height = 5, dpi = 500)
 
 # (3) Seasonality
-ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
+ggplot(fox.tpcb.1, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -194,13 +198,13 @@ ggplot(fox.tpcb.2, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 10^5, label = "Fox River",
            size = 3)
 
 # (4) Sites
-ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(fox.tpcb.1, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -217,7 +221,7 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 6.8, y = 10^5, label = "Fox River",
            size = 3)
@@ -232,29 +236,29 @@ ggplot(fox.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   paramtemp <- "00010" # water temperature, C
   # Retrieve USGS data
   flow <- readNWISdv(sitefoxN1, paramflow,
-                     min(fox.tpcb.2$date), max(fox.tpcb.2$date))
+                     min(fox.tpcb.1$date), max(fox.tpcb.1$date))
   temp <- readNWISdv(sitefoxN2, paramtemp,
-                     min(fox.tpcb.2$date), max(fox.tpcb.2$date))
+                     min(fox.tpcb.1$date), max(fox.tpcb.1$date))
   # Add USGS data to fox.tpcb.2, matching dates, conversion to m3/s
-  fox.tpcb.2$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.2$date,
+  fox.tpcb.1$flow <- 0.03*flow$X_.Primary.Stream.Flow._00060_00003[match(fox.tpcb.1$date,
                                                                          flow$Date)]
-  fox.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.2$date,
+  fox.tpcb.1$temp <- 273.15 + temp$X_00010_00003[match(fox.tpcb.1$date,
                                                        temp$Date)]
   # Remove samples with temp = NA
-  fox.tpcb.2 <- na.omit(fox.tpcb.2)
+  fox.tpcb.1 <- na.omit(fox.tpcb.1)
 }
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
-tpcb <- fox.tpcb.2$tPCB
-time <- fox.tpcb.2$time
-site <- fox.tpcb.2$site.code
-season <- fox.tpcb.2$season
-flow <- fox.tpcb.2$flow
-tem <- fox.tpcb.2$temp
+tpcb <- fox.tpcb.1$tPCB
+time <- fox.tpcb.1$time
+site <- fox.tpcb.1$site.code
+season <- fox.tpcb.1$season
+flow <- fox.tpcb.1$flow
+tem <- fox.tpcb.1$temp
 # tPCB vs. time + season + flow + temp + site
-lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
+lme.fox.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -276,7 +280,7 @@ summary(lme.fox.tpcb)
   dev.off()
 }
 
-# Create matrix to store results
+# Create matrix to store results from lme analysis
 {
   lme.tpcb <- matrix(nrow = 1, ncol = 24)
   lme.tpcb[1] <- fixef(lme.fox.tpcb)[1] # intercept
@@ -317,7 +321,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiverLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/FoxRiver/FoxRiverLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -325,62 +329,70 @@ fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
 # Add column name
 colnames(fit.lme.values.fox.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-fox.tpcb.2$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
+fox.tpcb.1$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-p <- ggplot(fox.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(10, 10^4.5),
+                breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(10, 10^4.5),
+                breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 50, y = 10^4.3,
            label = expression(atop("Fox River (R"^2*"= 0.78)",
-                              paste("t"[1/2]*" = 11 ± 2 (yr)"))),
-           size = 3, fontface = 2)
-# See plot
-print(p)
+                                   paste("t"[1/2]*" = 11 ± 2 (yr)"))),
+           size = 4, fontface = 2)
+
+# Print plot
+print(tPCBObsPred)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
+       plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/FoxRiverResidualtPCB.pdf")
-  plot(log10(fox.tpcb.2$predicted), res.fox.tpcb,
-       points(log10(fox.tpcb.2$predicted), res.fox.tpcb, pch = 16, 
-              col = "#66ccff"),
+  # Open a PNG graphics device
+  png("Output/Plots/Sites/Residual/res_plotlmeFoxRiverResidualtPCB.png", width = 800,
+      height = 600)
+  # Create your plot
+  plot(fox.tpcb.1$predicted, resid(lme.fox.tpcb),
+       points(fox.tpcb.1$predicted, resid(lme.fox.tpcb), pch = 16, 
+              col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
+  # Add lines to the plot
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(2, 3.5, 0.5), col = "grey")
+  abline(v = seq(0, 5000, 1000), col = "grey")
+  # Close the PNG graphics device
   dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
-fox.tpcb.2$factor2 <- fox.tpcb.2$tPCB/fox.tpcb.2$predicted
-factor2.tpcb <- nrow(fox.tpcb.2[fox.tpcb.2$factor2 > 0.5 & fox.tpcb.2$factor2 < 2,
-                              ])/length(fox.tpcb.2[,1])*100
+fox.tpcb.1$factor2 <- fox.tpcb.1$tPCB/fox.tpcb.1$predicted
+factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 2,
+                              ])/length(fox.tpcb.1[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
-# Use fox.1 (no 0s samples)
 # Prepare data.frame
 {
-  fox.pcb <- subset(fox.1, select = -c(SampleID:AroclorCongener))
+  fox.pcb <- subset(fox, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  fox.pcb <- subset(fox.pcb, select = -c(A1016:A1260))
+  fox.pcb <- subset(fox.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   fox.pcb <- log10(fox.pcb)
   # Replace -inf to NA
@@ -390,17 +402,22 @@ factor2.tpcb <- nrow(fox.tpcb.2[fox.tpcb.2$factor2 > 0.5 & fox.tpcb.2$factor2 < 
   # Remove individual PCB that have 30% or less NA values
   fox.pcb.1 <- fox.pcb[,
                        -which(colSums(is.na(fox.pcb))/nrow(fox.pcb) > 0.7)]
-  # Add site ID
-  fox.pcb.1$SiteID <- fox.1$SiteID
+  SiteID <- factor(fox$SiteID)
   # Change date format
-  fox.pcb.1$SampleDate <- as.Date(fox.1$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  fox.pcb.1$time <- as.Date(fox.1$SampleDate) - min(as.Date(fox.1$SampleDate))
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  fox.pcb.1$site.numb <- fox.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- fox$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  fox.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
-                           labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  yq.s <- as.yearqtr(as.yearmon(fox$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add date and time to fox.pcb.1
+  fox.pcb.1 <- cbind(fox.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
   # Remove site Lake Winnebago (background site)
   fox.pcb.1 <- subset(fox.pcb.1, SiteID != c("WCPCB-FOX001"))
   # Include flow data from USGS station Fox River
@@ -493,11 +510,11 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/FoxRiverLmePCB.csv")
 
 # Generate predictions
-# Select congeners that are not showing normality to be remove from che.pcb.2
+# Select congeners that are not showing normality to be remove from fox.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(fox.pcb.3) %in% df$names_to_remove)
-# Remove columns from che.pcb.2 with congeners that don't show normality
+# Remove columns from fox.pcb.2 with congeners that don't show normality
 fox.pcb.4 <- fox.pcb.3[, -cols_to_remove]
 
 # Create matrix to store results
@@ -540,7 +557,7 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
@@ -550,13 +567,14 @@ for (i in 2:length(df1)) {
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/FoxRiver/", col_name, ".png"), plot = p,
+         width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -570,7 +588,7 @@ for (i in 2:length(df1)) {
   # Create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
@@ -583,17 +601,17 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/FoxRiver/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/combined_plot.png", plot = combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -623,7 +641,7 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(0.01, 10^4), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -636,16 +654,16 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^3.7,
            label = expression(atop("Fox River",
                                    paste("15 PCB congeners (n = 1258)"))),
-           size = 3.3, fontface = 2)
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
