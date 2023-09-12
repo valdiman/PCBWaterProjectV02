@@ -315,7 +315,8 @@ plot.time.tPCB <- ggplot(tpcb, aes(y = tPCB,
   theme(axis.text.y = element_text(face = "bold", size = 10),
         axis.title.y = element_text(face = "bold", size = 11))
 
-print(plot.time.tPCB)  # Print the plot
+# Print the plot
+print(plot.time.tPCB)
 
 # Save plot in folder
 ggsave("Output/Plots/Global/tPCBTimeV02.png", plot = plot.time.tPCB,
@@ -343,7 +344,6 @@ ggplot(tpcb, aes(x = season, y = tPCB)) +
               shape = 21, fill = "#66ccff") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0)
 
-# Check this!!
 # Regressions -------------------------------------------------------------
 # Get variables
 tPCB <- tpcb$tPCB
