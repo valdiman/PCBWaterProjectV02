@@ -659,7 +659,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^3.7,
            label = expression(atop("Fox River",
-                                   paste("15 PCB congeners (n = 1258)"))),
+                                   paste("19 PCB congeners (n = 1258 pairs)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
