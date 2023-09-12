@@ -92,6 +92,9 @@ CHTime <- ggplot(che.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0.1, 0, 0, 0, unit = "cm"))
 
+# Print plot
+print(CHTime)
+
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotChesapeakeTime.png",
        plot = CHTime, width = 6, height = 5, dpi = 500)
@@ -115,7 +118,7 @@ ggplot(che.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 20, label = "Chesapeake Bay",
            size = 3)
@@ -138,7 +141,7 @@ ggplot(che.tpcb, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 5, y = 20, label = "Chesapeake Bay",
            size = 3)
@@ -163,12 +166,14 @@ summary(lme.che.tpcb)
 {
   res.che.tpcb <- resid(lme.che.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
-  qqnorm(res.che.tpcb, main = "log10(C)")
+  # Create pdf file
+  pdf("Output/Plots/Sites/Q-Q/ChesapeakeBayQ-QtPCB.pdf")
   qqnorm(res.che.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
   # Add a straight diagonal line to the plot
   qqline(res.che.tpcb)
+  dev.off()
 }
 # Shapiro test
 shapiro.test(res.che.tpcb)
@@ -196,7 +201,7 @@ summary(lme.che.tpcb)
   res.che.tpcb <- resid(lme.che.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/ChesapeakeBayQ-QtPCB.pdf")
+  pdf("Output/Plots/Sites/Q-Q/ChesapeakeBayQ-QtPCBV02.pdf")
   qqnorm(res.che.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
@@ -204,6 +209,8 @@ summary(lme.che.tpcb)
   qqline(res.che.tpcb)
   dev.off()
 }
+# Shapiro test
+shapiro.test(res.che.tpcb)
 
 # Create matrix to store results
 {
@@ -254,46 +261,49 @@ che.tpcb.1$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(10, 10^5.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 75, y = 10^5,
            label = expression(atop(" Chesapeake Bay (R"^2*"= 0.49)",
                                    paste("t"[1/2]*" = 15 ± 4.6 (yr)"))),
-           size = 3, fontface = 2)
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/ChesapeakeBayObsPredtPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredtPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/ChesapeakeBayResidualtPCB.pdf")
-  plot(log10(che.tpcb.1$predicted), res.che.tpcb,
-       points(log10(che.tpcb.1$predicted), res.che.tpcb, pch = 16, 
-              col = "#66ccff"),
-       xlim = c(2.5, 5),
+  # Open a PNG graphics device
+  png("Output/Plots/Sites/Residual/res_plotlmeChesapeakeBayResidualtPCB.png", width = 800,
+      height = 600)
+  # Create your plot
+  plot(che.tpcb.1$predicted, resid(lme.che.tpcb),
+       points(che.tpcb.1$predicted, resid(lme.che.tpcb), pch = 16, 
+              col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
+  # Add lines to the plot
   abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(2, 5, 0.5), col = "grey")
+  abline(h = c(-2, 2), col = "grey")
+  abline(v = seq(0, 30000, 5000), col = "grey")
+  # Close the PNG graphics device
   dev.off()
-  }
+}
 
 # Estimate a factor of 2 between observations and predictions
 che.tpcb.1$factor2 <- che.tpcb.1$tPCB/che.tpcb.1$predicted
@@ -303,11 +313,10 @@ factor2.tpcb <- nrow(che.tpcb.1[che.tpcb.1$factor2 > 0.5 & che.tpcb.1$factor2 < 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
 {
-  # Values coming from Data preparation section (che.tpcb)
   # Remove metadata
-  che.pcb <- subset(che.1, select = -c(SampleID:AroclorCongener))
+  che.pcb <- subset(che, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  che.pcb <- subset(che.pcb, select = -c(A1016:A1260))
+  che.pcb <- subset(che.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   che.pcb <- log10(che.pcb)
   # Replace -inf to NA
@@ -318,17 +327,24 @@ factor2.tpcb <- nrow(che.tpcb.1[che.tpcb.1$factor2 > 0.5 & che.tpcb.1$factor2 < 
   che.pcb.1 <- che.pcb[,
                        -which(colSums(is.na(che.pcb))/nrow(che.pcb) > 0.7)]
   # Add site ID
-  che.pcb.1$SiteID <- che.1$SiteID
-  # Add SampleDate
-  che.pcb.1$SampleDate <- che.1$SampleDate
-  # Add sampling time
-  che.pcb.1$time <- che.tpcb$time
-  # Add sampling site code
-  che.pcb.1$site.numb <- che.tpcb$site.code
-  # Add season
-  che.pcb.1$season <- che.tpcb$season
-  # Remove metadata for analysis
-  che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:season))
+  SiteID <- factor(che$SiteID)
+  # Change date format
+  SampleDate <- as.Date(che$SampleDate, format = "%m/%d/%y")
+  # Calculate sampling time
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
+  # Create individual code for each site sampled
+  site.numb <- che$SiteID %>% as.factor() %>% as.numeric
+  # Include season
+  yq.s <- as.yearqtr(as.yearmon(che$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add date and time to fox.pcb.1
+  che.pcb.1 <- cbind(che.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
+  # Remove metadata
+  che.pcb.2 <- subset(che.pcb.1, select = -c(SiteID:season.s))
 }
 
 # LME for individual PCBs -------------------------------------------------
@@ -440,7 +456,7 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
@@ -450,13 +466,14 @@ for (i in 2:length(df1)) {
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/ChesapeakeBay/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/ChesapeakeBay/", col_name, ".png"),
+         plot = p, width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -470,7 +487,7 @@ for (i in 2:length(df1)) {
   # Create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
@@ -483,17 +500,17 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     annotate('text', x = 25, y = 10^4, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "white", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/combined_plot.png", combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -523,7 +540,7 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(0.1, 10^5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -536,17 +553,17 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 5, y = 10^4.5,
            label = expression(atop("Chesapeake Bay",
-                                   paste("21 PCB congeners (n = 1090)"))),
-           size = 3.3, fontface = 2)
+                                   paste("21 PCB congeners (n = 1090 pairs)"))),
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/ChesapeakeBay/ChesapeakeBayObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
          
