@@ -402,6 +402,7 @@ factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 
   # Remove individual PCB that have 30% or less NA values
   fox.pcb.1 <- fox.pcb[,
                        -which(colSums(is.na(fox.pcb))/nrow(fox.pcb) > 0.7)]
+  # Add site ID
   SiteID <- factor(fox$SiteID)
   # Change date format
   SampleDate <- as.Date(fox$SampleDate, format = "%m/%d/%y")
