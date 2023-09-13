@@ -366,7 +366,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
   # Open a PNG graphics device
   png("Output/Plots/Sites/Residual/res_plotlmeFoxRiverResidualtPCB.png", width = 800,
       height = 600)
-  # Create your plot
+  # Create plot
   plot(fox.tpcb.1$predicted, resid(lme.fox.tpcb),
        points(fox.tpcb.1$predicted, resid(lme.fox.tpcb), pch = 16, 
               col = "white"),
