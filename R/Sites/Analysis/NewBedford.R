@@ -104,7 +104,7 @@ NBHTime <- ggplot(nbh.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
 # Save plot in folder
-ggsave("Output/Plots/Sites/Temporal/plotNBHTime.png",
+ggsave("Output/Plots/Sites/Temporal/plotNewBedfordTime.png",
        plot = NBHTime, width = 7, height = 6, dpi = 500)
 
 # (3) Seasonality
@@ -162,40 +162,6 @@ time <- nbh.tpcb$time
 site <- nbh.tpcb$site.code
 season <- nbh.tpcb$season
 # tPCB vs. time + season + site
-lmem.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
-                      REML = FALSE,
-                      control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                            check.nobs.vs.rankZ = "ignore",
-                                            check.nobs.vs.nRE="ignore"))
-
-# See results
-summary(lmem.nbh.tpcb)
-# Look at residuals
-{
-  res.nbh.tpcb <- resid(lmem.nbh.tpcb) # get list of residuals
-  # Create Q-Q plot for residuals
-  qqnorm(res.nbh.tpcb, main = "log10(C)")
-  qqnorm(res.nbh.tpcb,
-         main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
-                                 "PCB)")))
-  # Add a straight diagonal line to the plot
-  qqline(res.nbh.tpcb)
-}
-# Shapiro test
-shapiro.test(res.nbh.tpcb)
-
-# Remove minimum and top 4 values
-nbh.tpcb.1 <- subset(nbh.tpcb, tPCB < 220000 & tPCB > 130)
-nbh.tpcb.1 <- subset(nbh.tpcb, tPCB > 2000)
-
-
-# Perform Linear Mixed-Effects Model (lme)
-# Get variables
-tpcb <- nbh.tpcb.1$tPCB
-time <- nbh.tpcb.1$time
-site <- nbh.tpcb.1$site.code
-season <- nbh.tpcb.1$season
-# tPCB vs. time + season + site
 lme.nbh.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
@@ -209,7 +175,7 @@ summary(lme.nbh.tpcb)
   res.nbh.tpcb <- resid(lme.nbh.tpcb) # get list of residuals
   # Create Q-Q plot for residuals
   # Create pdf file
-  pdf("Output/Plots/Sites/Q-Q/NewBedfordHarborQ-QtPCB.pdf")
+  pdf("Output/Plots/Sites/Q-Q/NewBedfordQ-QtPCB.pdf")
   qqnorm(res.nbh.tpcb,
          main = expression(paste("Normal Q-Q Plot (log"[10]* Sigma,
                                  "PCB)")))
@@ -217,108 +183,15 @@ summary(lme.nbh.tpcb)
   qqline(res.nbh.tpcb)
   dev.off()
 }
-
-# Create matrix to store results
-{
-  lme.tpcb <- matrix(nrow = 1, ncol = 21)
-  lme.tpcb[1] <- fixef(lme.nbh.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.nbh.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.nbh.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.nbh.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.nbh.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.nbh.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.nbh.tpcb)[3] # season 1
-  lme.tpcb[8] <- summary(lme.nbh.tpcb)$coef[3,"Std. Error"] # season 1 error
-  lme.tpcb[9] <- summary(lme.nbh.tpcb)$coef[3,"Pr(>|t|)"] # season 1 p-value
-  lme.tpcb[10] <- fixef(lme.nbh.tpcb)[4] # season 2
-  lme.tpcb[11] <- summary(lme.nbh.tpcb)$coef[4,"Std. Error"] # season 2 error
-  lme.tpcb[12] <- summary(lme.nbh.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[13] <- fixef(lme.nbh.tpcb)[5] # season 3
-  lme.tpcb[14] <- summary(lme.nbh.tpcb)$coef[5,"Std. Error"] # season 3 error
-  lme.tpcb[15] <- summary(lme.nbh.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[18] <- as.data.frame(VarCorr(lme.nbh.tpcb))[1,'sdcor']
-  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.nbh.tpcb))[1, 'R2m']
-  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.nbh.tpcb))[1, 'R2c']
-  lme.tpcb[21] <- shapiro.test(resid(lme.nbh.tpcb))$p.value
-}
-
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "season1", "season1.error", "season1, pv",
-                        "season2", "season2.error", "season2, pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/NewBedfordLmetPCB.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.nbh.tpcb <- as.data.frame(fitted(lme.nbh.tpcb))
-# Add column name
-colnames(fit.lme.values.nbh.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-nbh.tpcb.1$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(nbh.tpcb.1, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 600, y = 10^5.6,
-           label = expression(atop("New Bedford Harbord (R"^2*"= 0.77)",
-                                   paste("t"[1/2]*" = -3.8 ± 0.5 (yr)"))),
-           size = 3, fontface = 2)
-# See plot
-print(p)
-# Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.pdf",
-       plot = p, device = "pdf")
-
-# Plot residuals vs. predictions
-{
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/NewBedfordHarborResidualtPCB.pdf")
-  plot(log10(nbh.tpcb.1$predicted), res.nbh.tpcb,
-       points(log10(nbh.tpcb.1$predicted), res.nbh.tpcb, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(2, 5.5, 0.5), col = "grey")
-  dev.off()
-  }
-
-# Estimate a factor of 2 between observations and predictions
-nbh.tpcb.1$factor2 <- nbh.tpcb.1$tPCB/nbh.tpcb.1$predicted
-factor2.tpcb <- nrow(nbh.tpcb.1[nbh.tpcb.1$factor2 > 0.5 & nbh.tpcb.1$factor2 < 2,
-                              ])/length(nbh.tpcb.1[,1])*100
+# Shapiro test
+shapiro.test(res.nbh.tpcb)
 
 # Individual PCB Analysis -------------------------------------------------
-# Use nbh.1 (no 0s samples)
 # Prepare data.frame
 {
-  nbh.pcb <- subset(nbh.1, select = -c(SampleID:AroclorCongener))
+  nbh.pcb <- subset(nbh, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  nbh.pcb <- subset(nbh.pcb, select = -c(A1016:A1260))
+  nbh.pcb <- subset(nbh.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   nbh.pcb <- log10(nbh.pcb)
   # Replace -inf to NA
@@ -329,18 +202,25 @@ factor2.tpcb <- nrow(nbh.tpcb.1[nbh.tpcb.1$factor2 > 0.5 & nbh.tpcb.1$factor2 < 
   nbh.pcb.1 <- nbh.pcb[,
                        -which(colSums(is.na(nbh.pcb))/nrow(nbh.pcb) > 0.7)]
   # Add site ID
-  nbh.pcb.1$SiteID <- nbh.1$SiteID
+  SiteID <- factor(nbh$SiteID)
   # Change date format
-  nbh.pcb.1$SampleDate <- as.Date(nbh.1$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(nbh$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  nbh.pcb.1$time <- as.Date(nbh.1$SampleDate) - min(as.Date(nbh.1$SampleDate))
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  nbh.pcb.1$site.numb <- nbh.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- nbh$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  nbh.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+  yq.s <- as.yearqtr(as.yearmon(nbh$SampleDate, "%m/%d/%Y") + 1/12)
+  # Include season
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add date and time to nbh.pcb.1
+  nbh.pcb.1 <- cbind(nbh.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
   # Remove metadata
-  nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season))
+  nbh.pcb.2 <- subset(nbh.pcb.1, select = -c(SiteID:season.s))
 }
 
 # LME for individual PCBs -------------------------------------------------
@@ -354,7 +234,7 @@ lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 21)
 
 # Perform LME
 for (i in 1:length(nbh.pcb.2[1,])) {
-  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
