@@ -36,33 +36,29 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Kalamazoo data ---------------------------------------------------
-kal.0 <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
+kal <- wdc[str_detect(wdc$LocationName, 'Kalamazoo River'),]
 # Superfund site from Morrow Dam (Kalamazoo River) to Lake Michigan
 # and 30 miles of Portage Creek (south), Cork St and Portage Creek Cork St sites
 # Dredging occurred at Plainwell Dam site.
 
 # Data preparation --------------------------------------------------------
 {
-  # Remove samples (rows) with total PCBs  = 0
-  kal.1 <- kal.0[!(rowSums(kal.0[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb.kal <- rowSums(kal.1[, c(14:117)], na.rm = T)
   # Change date format
-  kal.1$SampleDate <- as.Date(kal.1$SampleDate, format = "%m/%d/%y")
+  kal$SampleDate <- as.Date(kal$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(kal.1$SampleDate) - min(as.Date(kal.1$SampleDate)))
+  time.day <- data.frame(as.Date(kal$SampleDate) - min(as.Date(kal$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- kal.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- kal$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(kal.1$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(kal$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  kal.tpcb <- cbind(factor(kal.1$SiteID), kal.1$SampleDate,
-                    kal.1$Latitude, kal.1$Longitude, as.matrix(tpcb.kal),
+  kal.tpcb <- cbind(factor(kal$SiteID), kal$SampleDate,
+                    kal$Latitude, kal$Longitude, as.matrix(kal$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(kal.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
@@ -82,25 +78,6 @@ hist(kal.tpcb$tPCB)
 hist(log10(kal.tpcb$tPCB))
 
 # (2) Time trend plots
-ggplot(kal.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 2, y = 100, label = "Kalamazoo River",
-           size = 3)
-
-# (2) Time trend plots
 KRTime <- ggplot(kal.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
@@ -116,6 +93,9 @@ KRTime <- ggplot(kal.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print the plot
+print(KRTime)
 
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotKalRiverTime.png",
@@ -248,7 +228,7 @@ site <- kal.tpcb.2$site.code
 season <- kal.tpcb.2$season
 flow <- kal.tpcb.2$flow.1
 
-lme.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + (1|site),
+lme.kal.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
                   REML = FALSE,
                   control = lmerControl(check.nobs.vs.nlev = "ignore",
                                         check.nobs.vs.rankZ = "ignore",
@@ -273,7 +253,7 @@ summary(lme.kal.tpcb)
 
 # Create matrix to store results
 {
-  lme.tpcb <- matrix(nrow = 1, ncol = 24)
+  lme.tpcb <- matrix(nrow = 1, ncol = 21)
   lme.tpcb[1] <- fixef(lme.kal.tpcb)[1] # intercept
   lme.tpcb[2] <- summary(lme.kal.tpcb)$coef[1,"Std. Error"] # intercept error
   lme.tpcb[3] <- summary(lme.kal.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
@@ -283,21 +263,18 @@ summary(lme.kal.tpcb)
   lme.tpcb[7] <- fixef(lme.kal.tpcb)[3] # flow
   lme.tpcb[8] <- summary(lme.kal.tpcb)$coef[3,"Std. Error"] # flow error
   lme.tpcb[9] <- summary(lme.kal.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
-  lme.tpcb[10] <- fixef(lme.kal.tpcb)[4] # temperature
-  lme.tpcb[11] <- summary(lme.kal.tpcb)$coef[4,"Std. Error"] # temperature error
-  lme.tpcb[12] <- summary(lme.kal.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[13] <- fixef(lme.kal.tpcb)[5] # season 2
-  lme.tpcb[14] <- summary(lme.kal.tpcb)$coef[5,"Std. Error"] # season 2 error
-  lme.tpcb[15] <- summary(lme.kal.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[16] <- fixef(lme.kal.tpcb)[6] # season 3
-  lme.tpcb[17] <- summary(lme.kal.tpcb)$coef[6,"Std. Error"] # season 3 error
-  lme.tpcb[18] <- summary(lme.kal.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[21] <- as.data.frame(VarCorr(lme.kal.tpcb))[1,'sdcor']
-  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2m']
-  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2c']
-  lme.tpcb[24] <- shapiro.test(resid(lme.kal.tpcb))$p.value
+  lme.tpcb[10] <- fixef(lme.kal.tpcb)[4] # season 2
+  lme.tpcb[11] <- summary(lme.kal.tpcb)$coef[4,"Std. Error"] # season 2 error
+  lme.tpcb[12] <- summary(lme.kal.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[13] <- fixef(lme.kal.tpcb)[5] # season 3
+  lme.tpcb[14] <- summary(lme.kal.tpcb)$coef[5,"Std. Error"] # season 3 error
+  lme.tpcb[15] <- summary(lme.kal.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[18] <- as.data.frame(VarCorr(lme.kal.tpcb))[1,'sdcor']
+  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2m']
+  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.kal.tpcb))[1, 'R2c']
+  lme.tpcb[21] <- shapiro.test(resid(lme.kal.tpcb))$p.value
 }
 
 # Just 3 significant figures
@@ -305,8 +282,7 @@ lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
 # Add column names
 colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "Intercept.pv", "time", "time.error", "time.pv",
-                        "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season2",
+                        "flow", "flow.error", "flow.pv", "season2",
                         "season2.error", "season2, pv", "season3",
                         "season3.error", "season3.pv", "t05", "t05.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
@@ -324,44 +300,46 @@ kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(10, 10^6), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = 0.3, slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.3, slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 200, y = 10^5.8,
            label = expression(atop("Kalamazoo River (R"^2*"= 0.97)",
                                    paste("t"[1/2]*" = 3 ± 0.1 (yr)"))),
-           size = 3, fontface = 2)
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
   # Create pdf file
-  pdf("Output/Plots/Sites/Residual/KalamazooRiverResidualtPCB.pdf")
-  plot(log10(kal.tpcb.2$predicted), res.kal.tpcb,
-       points(log10(kal.tpcb.2$predicted), res.kal.tpcb, pch = 16, 
-              col = "#66ccff"),
-       xlim = c(1, 6),
+  png("Output/Plots/Sites/Residual/res_plotlmeKalamazooRiverResidualtPCB.png", width = 800,
+      height = 600)
+  # Create plot
+  plot(kal.tpcb.2$predicted, resid(lme.kal.tpcb),
+       points(kal.tpcb.2$predicted, resid(lme.kal.tpcb), pch = 16, 
+              col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(1, 6, 0.5), col = "grey")
+  abline(v = seq(1, 200000, 10000), col = "grey")
+  # Close the PNG graphics device
   dev.off()
   }
 
