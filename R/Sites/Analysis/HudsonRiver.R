@@ -36,10 +36,10 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Hudson River data ---------------------------------------------------
-hud.0 <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
+hud <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
 # PCBs were discharged to the river from the General Electric
 # (GE) manufacturing plants in Hudson Falls and Fort Edward, NY
 # Dredging from 2009 to 2015
@@ -47,23 +47,19 @@ hud.0 <- wdc[str_detect(wdc$LocationName, 'Hudson River'),]
 
 # Data preparation --------------------------------------------------------
 {
-  # Remove samples (rows) with total PCBs  = 0
-  hud.1 <- hud.0[!(rowSums(hud.0[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb.hud <- rowSums(hud.1[, c(14:117)], na.rm = T)
   # Change date format
-  hud.1$SampleDate <- as.Date(hud.1$SampleDate, format = "%m/%d/%y")
+  hud$SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(hud.1$SampleDate) - min(as.Date(hud.1$SampleDate)))
+  time.day <- data.frame(as.Date(hud$SampleDate) - min(as.Date(hud$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- hud.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(hud.1$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  hud.tpcb <- cbind(factor(hud.1$SiteID), hud.1$SampleDate,
-                    hud.1$Latitude, hud.1$Longitude, as.matrix(tpcb.hud),
+  hud.tpcb <- cbind(factor(hud$SiteID), hud$SampleDate,
+                    hud$Latitude, hud$Longitude, as.matrix(hud$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(hud.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
@@ -82,25 +78,6 @@ hist(hud.tpcb$tPCB)
 hist(log10(hud.tpcb$tPCB)) # Better approach
 
 # (2) Time trend plots
-ggplot(hud.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y-%m'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 20, y = 10^5.3, label = "Hudson River",
-           size = 3)
-
-# (2) Time trend plots
 HRTime <- ggplot(hud.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
@@ -116,6 +93,9 @@ HRTime <- ggplot(hud.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
     axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print the plot
+print(HRTime)
 
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTime.png",
@@ -172,35 +152,40 @@ ggplot(hud.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 ## Remove site Bakers Falls. Upstream source
 ## North Bakers Falls = WCPCB-HUD006 and
 ## South Bakers Falls = WCPCB-HUD006.
-hud.tpcb.2 <- subset(hud.tpcb, SiteID != c("WCPCB-HUD006"))
-hud.tpcb.2 <- subset(hud.tpcb.2, SiteID != c("WCPCB-HUD010"))
+hud.tpcb.1 <- subset(hud.tpcb, SiteID != c("WCPCB-HUD006"))
+hud.tpcb.1 <- subset(hud.tpcb.1, SiteID != c("WCPCB-HUD010"))
 
 # Plots w/o Bakers Falls sites ------------------------------------------------
 # (1) Histograms
-hist(hud.tpcb.2$tPCB)
-hist(log10(hud.tpcb.2$tPCB))
+hist(hud.tpcb.1$tPCB)
+hist(log10(hud.tpcb.1$tPCB))
 
 # (2) Time trend plots
-ggplot(hud.tpcb.2, aes(y = tPCB,
-                       x = format(date,'%Y-%m'))) +
-  geom_point(shape = 21, fill = "#66ccff") +
+HRTime <- ggplot(hud.tpcb.1, aes(y = tPCB, x = format(date, '%Y-%m'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 20, y = 10^5.2, label = "Hudson River",
-           size = 3)
+  scale_y_log10(
+    breaks = c(10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print the plot
+print(HRTime)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTimeV02.png",
+       plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # (3) Seasonality
-ggplot(hud.tpcb.2, aes(x = season, y = tPCB)) +
+ggplot(hud.tpcb.1, aes(x = season, y = tPCB)) +
   xlab("") +
   scale_x_discrete(labels = c("winter", "spring", "summer", "fall")) +
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
@@ -224,7 +209,7 @@ ggplot(hud.tpcb.2, aes(x = season, y = tPCB)) +
            size = 3)
 
 # (4) Sites
-ggplot(hud.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(hud.tpcb.1, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -261,82 +246,68 @@ ggplot(hud.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
   
   # Flow (ft3/s)
   flow.1 <- readNWISdv(sitehudN1, paramflow,
-                       min(hud.tpcb.2$date), max(hud.tpcb.2$date))
+                       min(hud.tpcb.1$date), max(hud.tpcb.1$date))
   flow.2 <- readNWISdv(sitehudN2, paramflow,
-                       min(hud.tpcb.2$date), max(hud.tpcb.2$date))
+                       min(hud.tpcb.1$date), max(hud.tpcb.1$date))
   flow.3 <- readNWISdv(sitehudN3, paramflow,
-                       min(hud.tpcb.2$date), max(hud.tpcb.2$date))
+                       min(hud.tpcb.1$date), max(hud.tpcb.1$date))
   flow.4 <- readNWISdv(sitehudN4, paramflow,
-                       min(hud.tpcb.2$date), max(hud.tpcb.2$date))
+                       min(hud.tpcb.1$date), max(hud.tpcb.1$date))
   # Water temperature in Celsius
   temp <- readNWISdv(sitehudN5, paramtemp,
-                     min(hud.tpcb.2$date), max(hud.tpcb.2$date))
+                     min(hud.tpcb.1$date), max(hud.tpcb.1$date))
   
   # Add USGS data to hud.tpcb.2, matching dates
-  hud.tpcb.2$flow.1 <- 0.03*flow.1$X_00060_00003[match(hud.tpcb.2$date,
+  hud.tpcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(hud.tpcb.1$date,
                                                        flow.1$Date)]
-  hud.tpcb.2$flow.2 <- 0.03*flow.2$X_00060_00003[match(hud.tpcb.2$date,
+  hud.tpcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(hud.tpcb.1$date,
                                                        flow.2$Date)]
-  hud.tpcb.2$flow.3 <- 0.03*flow.3$X_00060_00003[match(hud.tpcb.2$date,
+  hud.tpcb.1$flow.3 <- 0.03*flow.3$X_00060_00003[match(hud.tpcb.1$date,
                                                        flow.3$Date)]
-  hud.tpcb.2$flow.4 <- 0.03*flow.4$X_00060_00003[match(hud.tpcb.2$date,
+  hud.tpcb.1$flow.4 <- 0.03*flow.4$X_00060_00003[match(hud.tpcb.1$date,
                                                        flow.4$Date)]
-  hud.tpcb.2$temp <- 273.15 + temp$X_00010_00003[match(hud.tpcb.2$date,
+  hud.tpcb.1$temp <- 273.15 + temp$X_00010_00003[match(hud.tpcb.1$date,
                                                        temp$Date)]
   # Remove samples with temp = NA
-  hud.tpcb.3 <- na.omit(hud.tpcb.2)
+  hud.tpcb.2 <- na.omit(hud.tpcb.1)
 }
 
 # Time trend plots
-ggplot(hud.tpcb.2, aes(y = tPCB,
-                       x = format(date,'%Y-%m'))) +
-  geom_point(shape = 21, fill = "#66ccff") +
+# (2) Time trend plots
+HRTime <- ggplot(hud.tpcb.2, aes(y = tPCB, x = format(date, '%Y-%m'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 21, y = 10^5.2, label = "Hudson River",
-           size = 3)
+  scale_y_log10(
+    breaks = c(10, 100, 1000, 10000, 100000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000, 10000, 100000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
-ggplot(hud.tpcb.3, aes(y = tPCB,
-                       x = format(date,'%Y-%m'))) +
-  geom_point(shape = 21, fill = "#66ccff") +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 10, y = 10^5.2, label = "Hudson River",
-           size = 3)
+# Print the plot
+print(HRTime)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotHudsonRiverTimeV03.png",
+       plot = HRTime, width = 8, height = 5, dpi = 500)
 
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
-# Lme works for data < 24400 pg/L
-hud.tpcb.4 <- subset(hud.tpcb.3, tPCB < 24400)
 # Get variables
-tpcb <- hud.tpcb.4$tPCB
-time <- hud.tpcb.4$time
-site <- hud.tpcb.4$site.code
-season <- hud.tpcb.4$season
-flow <- hud.tpcb.4$flow.2 # flow.2
-tem <- hud.tpcb.4$temp
+tpcb <- hud.tpcb.2$tPCB
+time <- hud.tpcb.2$time
+site <- hud.tpcb.2$site.code
+season <- hud.tpcb.2$season
+flow <- hud.tpcb.2$flow.2 # flow.2
+tem <- hud.tpcb.2$temp
 # tPCB vs. time + season + flow + temp + site
-lme.hud.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
+lme.hud.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
                       REML = FALSE,
                       control = lmerControl(check.nobs.vs.nlev = "ignore",
                                             check.nobs.vs.rankZ = "ignore",
@@ -359,114 +330,16 @@ summary(lme.hud.tpcb)
   dev.off()
 }
 
-# Create matrix to store results
-{
-  lme.tpcb <- matrix(nrow = 1, ncol = 24)
-  lme.tpcb[1] <- fixef(lme.hud.tpcb)[1] # intercept
-  lme.tpcb[2] <- summary(lme.hud.tpcb)$coef[1,"Std. Error"] # intercept error
-  lme.tpcb[3] <- summary(lme.hud.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
-  lme.tpcb[4] <- fixef(lme.hud.tpcb)[2] # time
-  lme.tpcb[5] <- summary(lme.hud.tpcb)$coef[2,"Std. Error"] # time error
-  lme.tpcb[6] <- summary(lme.hud.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.tpcb[7] <- fixef(lme.hud.tpcb)[3] # flow
-  lme.tpcb[8] <- summary(lme.hud.tpcb)$coef[3,"Std. Error"] # flow error
-  lme.tpcb[9] <- summary(lme.hud.tpcb)$coef[3,"Pr(>|t|)"] # flow p-value
-  lme.tpcb[10] <- fixef(lme.hud.tpcb)[4] # temperature
-  lme.tpcb[11] <- summary(lme.hud.tpcb)$coef[4,"Std. Error"] # temperature error
-  lme.tpcb[12] <- summary(lme.hud.tpcb)$coef[4,"Pr(>|t|)"] # temperature p-value
-  lme.tpcb[13] <- fixef(lme.hud.tpcb)[5] # season 2
-  lme.tpcb[14] <- summary(lme.hud.tpcb)$coef[5,"Std. Error"] # season 2 error
-  lme.tpcb[15] <- summary(lme.hud.tpcb)$coef[5,"Pr(>|t|)"] # season 2 p-value
-  lme.tpcb[16] <- fixef(lme.hud.tpcb)[6] # season 3
-  lme.tpcb[17] <- summary(lme.hud.tpcb)$coef[6,"Std. Error"] # season 3 error
-  lme.tpcb[18] <- summary(lme.hud.tpcb)$coef[6,"Pr(>|t|)"] # season 3 p-value
-  lme.tpcb[19] <- -log(2)/lme.tpcb[4]/365 # t0.5
-  lme.tpcb[20] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
-  lme.tpcb[21] <- as.data.frame(VarCorr(lme.hud.tpcb))[1,'sdcor']
-  lme.tpcb[22] <- as.data.frame(r.squaredGLMM(lme.hud.tpcb))[1, 'R2m']
-  lme.tpcb[23] <- as.data.frame(r.squaredGLMM(lme.hud.tpcb))[1, 'R2c']
-  lme.tpcb[24] <- shapiro.test(resid(lme.hud.tpcb))$p.value
-}
-
-# Just 3 significant figures
-lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
-# Add column names
-colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
-                        "Intercept.pv", "time", "time.error", "time.pv",
-                        "flow", "flow.error", "flow.pv", "temperature",
-                        "temperature.error", "temperature.pv", "season2",
-                        "season2.error", "season2, pv", "season3",
-                        "season3.error", "season3.pv", "t05", "t05.error",
-                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
-
-# Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/HudsonLmetPCB.csv")
-
-# Modeling plots
-# (1) Get predicted values tpcb
-fit.lme.values.hud.tpcb <- as.data.frame(fitted(lme.hud.tpcb))
-# Add column name
-colnames(fit.lme.values.hud.tpcb) <- c("predicted")
-# Add predicted values to data.frame
-hud.tpcb.4$predicted <- 10^(fit.lme.values.hud.tpcb$predicted)
-
-# Plot prediction vs. observations, 1:1 line
-p <- ggplot(hud.tpcb.4, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(100, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(100, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
-  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
-  theme_bw() +
-  theme(aspect.ratio = 15/15) +
-  annotation_logticks(sides = "bl") +
-  annotate('text', x = 500, y = 10^4.9,
-           label = expression(atop("Hudson River (R"^2*"= 0.94)",
-                                   paste("t"[1/2]*" = -1.3 ± 0.4 (yr)"))),
-           size = 3, fontface = 2)
-# See plot
-print(p)
-# Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverObsPredtPCB.pdf",
-       plot = p, device = "pdf")
-
-# Plot residuals vs. predictions
-{
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/HudsonRiverResidualtPCB.pdf")
-  plot(log10(hud.tpcb.4$predicted), res.hud.tpcb,
-       points(log10(hud.tpcb.4$predicted), res.hud.tpcb, pch = 16, 
-              col = "#66ccff"),
-       ylim = c(-2, 2),
-       xlab = expression(paste("Predicted lme concentration ",
-                               Sigma, "PCB (pg/L)")),
-       ylab = "Residual")
-  abline(0, 0)
-  abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(2, 5, 0.5), col = "grey")
-  dev.off()
-  }
-
-# Estimate a factor of 2 between observations and predictions
-hud.tpcb.4$factor2 <- hud.tpcb.4$tPCB/hud.tpcb.4$predicted
-factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 2,
-                                ])/length(hud.tpcb.4[,1])*100
+# Normality test
+shapiro.test(resid(lme.hud.tpcb))$p.value # It doesn't work.
 
 # Individual PCB Analysis -------------------------------------------------
-# Use hud.1 (no 0s samples)
 # Prepare data.frame
 {
-  # Remove samples (rows) with total PCBs  = 0
-  hud.1 <- hud.0[!(rowSums(hud.0[, c(14:117)], na.rm = TRUE)==0),]
   # Remove metadata
-  hud.pcb <- subset(hud.1, select = -c(SampleID:AroclorCongener))
+  hud.pcb <- subset(hud, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  hud.pcb <- subset(hud.pcb, select = -c(A1016:A1260))
+  hud.pcb <- subset(hud.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   hud.pcb <- log10(hud.pcb)
   # Replace -inf to NA
@@ -477,23 +350,28 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
   hud.pcb.1 <- hud.pcb[,
                        -which(colSums(is.na(hud.pcb))/nrow(hud.pcb) > 0.7)]
   # Add site ID
-  hud.pcb.1$SiteID <- hud.1$SiteID
+  SiteID <- factor(hud$SiteID)
   # Change date format
-  hud.pcb.1$SampleDate <- as.Date(hud.1$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(hud$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  hud.pcb.1$time <- as.Date(hud.pcb.1$SampleDate) - min(as.Date(hud.pcb.1$SampleDate))
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  hud.pcb.1$site.numb <- hud.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- hud$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(hud.1$SampleDate, "%m/%d/%Y") + 1/12)
-  hud.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+  yq.s <- as.yearqtr(as.yearmon(hud$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
-  ## Remove site Bakers Falls. Upstream source
-  ## North Bakers Falls = WCPCB-HUD006 and
-  ## South Bakers Falls = WCPCB-HUD006.
+  # Add date and time to hud.pcb.1
+  hud.pcb.1 <- cbind(hud.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
+  # Remove site Bakers Falls. Upstream source
+  # North Bakers Falls = WCPCB-HUD006 and
+  # South Bakers Falls = WCPCB-HUD006.
   hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD006"))
   hud.pcb.1 <- subset(hud.pcb.1, SiteID != c("WCPCB-HUD010"))
-  # Include flow data from USGS station hud River
+  # Include flow data from USGS station Hudson River
   sitehudN1 <- "01331095" # HUDSON RIVER AT STILLWATER NY No temp!
   sitehudN2 <- "01335754" # HUDSON RIVER ABOVE LOCK 1 NEAR WATERFORD NY, no temp!
   sitehudN3 <- "01328770" # HUDSON RIVER AT THOMSON NY, no temp!
@@ -516,7 +394,7 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
   temp <- readNWISdv(sitehudN5, paramtemp,
                      min(hud.pcb.1$SampleDate), max(hud.pcb.1$SampleDate))
   
-  # Add USGS data to hud.tpcb.2, matching dates
+  # Add USGS data to hud.tpcb.1 matching dates
   hud.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(hud.pcb.1$SampleDate,
                                                        flow.1$Date)]
   hud.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(hud.pcb.1$SampleDate,
@@ -527,17 +405,18 @@ factor2.tpcb <- nrow(hud.tpcb.4[hud.tpcb.4$factor2 > 0.5 & hud.tpcb.4$factor2 < 
                                                        flow.4$Date)]
   hud.pcb.1$temp <- 273.15 + temp$X_00010_00003[match(hud.pcb.1$SampleDate,
                                                        temp$Date)]
-  # Remove samples with temperature = NA
+  # Remove samples with flow.3 = NA
   hud.pcb.2 <- hud.pcb.1[!is.na(hud.pcb.1$flow.3), ]
-  # Remove metadata
+  # Remove metadata for both hud.pcb.1 and hud.pcb.2
   hud.pcb.3 <- subset(hud.pcb.1, select = -c(SiteID:temp))
+  # Flow.3 = NA was removed here. When using Flow.3, use only hud.pcb.4!
   hud.pcb.4 <- subset(hud.pcb.2, select = -c(SiteID:temp))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- hud.pcb.2$time
-flow <- hud.pcb.2$flow.3 # Don't use flow 3. For flow 3, use hud.pcb.2
+flow <- hud.pcb.2$flow.3 # For flow.3, use hud.pcb.4 in lme
 temper <- hud.pcb.2$temp
 season <- hud.pcb.2$season
 site <- hud.pcb.2$site.numb
@@ -602,7 +481,7 @@ lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 write.csv(lme.pcb, file = "Output/Data/Sites/csv/HudsonRiverLmePCB.csv")
 
 # Generate predictions
-# Select congeners that are not showing normality to be remove from che.pcb.2
+# Select congeners that are not showing normality to be remove from hud.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(hud.pcb.4) %in% df$names_to_remove)
@@ -649,7 +528,7 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.5, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.5, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
@@ -659,13 +538,14 @@ for (i in 2:length(df1)) {
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 1, y = 10^4.5, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/HudsonRiver/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/HudsonRiver/", col_name, ".png"), plot = p,
+         width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -679,7 +559,7 @@ for (i in 2:length(df1)) {
   # Create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.5, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.5, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
@@ -692,17 +572,17 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     annotate('text', x = 1, y = 10^4.5, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/HudsonRiver/combined_plot.png", combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -732,7 +612,7 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(0.5, 10^5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -745,15 +625,15 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 10, y = 10^4.5,
            label = expression(atop("Hudson River",
-                                   paste("2 PCB congeners (n = 252)"))),
+                                   paste("2 PCB congeners (n = 195 pairs)"))),
            size = 3.3, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave(filename = "Output/Plots/Sites/ObsPred/HudsonRiver/HudsonRiverObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
