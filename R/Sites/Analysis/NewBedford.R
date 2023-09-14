@@ -103,6 +103,9 @@ NBHTime <- ggplot(nbh.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
+# Print plot
+print(NBHTime)
+
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotNewBedfordTime.png",
        plot = NBHTime, width = 7, height = 6, dpi = 500)
@@ -126,7 +129,7 @@ ggplot(nbh.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1.5, y = 10^5.4, label = "New Bedford Harbor",
            size = 3)
@@ -149,7 +152,7 @@ ggplot(nbh.tpcb, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 15, y = 10^5.4, label = "New Bedford Harbor",
            size = 3)
@@ -183,8 +186,112 @@ summary(lme.nbh.tpcb)
   qqline(res.nbh.tpcb)
   dev.off()
 }
+
 # Shapiro test
-shapiro.test(res.nbh.tpcb)
+shapiro.test(resid(lme.nbh.tpcb)) # p-value = 0.03, still report results from lme
+
+# Create matrix to store results from lme analysis
+{
+  lme.tpcb <- matrix(nrow = 1, ncol = 21)
+  lme.tpcb[1] <- fixef(lme.nbh.tpcb)[1] # intercept
+  lme.tpcb[2] <- summary(lme.nbh.tpcb)$coef[1,"Std. Error"] # intercept error
+  lme.tpcb[3] <- summary(lme.nbh.tpcb)$coef[1,"Pr(>|t|)"] # intercept p-value
+  lme.tpcb[4] <- fixef(lme.nbh.tpcb)[2] # time
+  lme.tpcb[5] <- summary(lme.nbh.tpcb)$coef[2,"Std. Error"] # time error
+  lme.tpcb[6] <- summary(lme.nbh.tpcb)$coef[2,"Pr(>|t|)"] # time p-value
+  lme.tpcb[7] <- fixef(lme.nbh.tpcb)[3] # season 1
+  lme.tpcb[8] <- summary(lme.nbh.tpcb)$coef[3,"Std. Error"] # season 1 error
+  lme.tpcb[9] <- summary(lme.nbh.tpcb)$coef[3,"Pr(>|t|)"] # season 1 p-value
+  lme.tpcb[10] <- fixef(lme.nbh.tpcb)[4] # season 2
+  lme.tpcb[11] <- summary(lme.nbh.tpcb)$coef[4,"Std. Error"] # season 2 error
+  lme.tpcb[12] <- summary(lme.nbh.tpcb)$coef[4,"Pr(>|t|)"] # season 2 p-value
+  lme.tpcb[13] <- fixef(lme.nbh.tpcb)[5] # season 3
+  lme.tpcb[14] <- summary(lme.nbh.tpcb)$coef[5,"Std. Error"] # season 3 error
+  lme.tpcb[15] <- summary(lme.nbh.tpcb)$coef[5,"Pr(>|t|)"] # season 3 p-value
+  lme.tpcb[16] <- -log(2)/lme.tpcb[4]/365 # t0.5
+  lme.tpcb[17] <- abs(-log(2)/lme.tpcb[4]/365)*lme.tpcb[5]/abs(lme.tpcb[4]) # t0.5 error
+  lme.tpcb[18] <- as.data.frame(VarCorr(lme.nbh.tpcb))[1,'sdcor']
+  lme.tpcb[19] <- as.data.frame(r.squaredGLMM(lme.nbh.tpcb))[1, 'R2m']
+  lme.tpcb[20] <- as.data.frame(r.squaredGLMM(lme.nbh.tpcb))[1, 'R2c']
+  lme.tpcb[21] <- shapiro.test(resid(lme.nbh.tpcb))$p.value
+}
+
+# Just 3 significant figures
+lme.tpcb <- formatC(signif(lme.tpcb, digits = 3))
+# Add column names
+colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
+                        "Intercept.pv", "time", "time.error", "time.pv",
+                        "season1", "season1.error", "season1.pv",
+                        "season2", "season2.error", "season2.pv", "season3",
+                        "season3.error", "season3.pv", "t05", "t05.error",
+                        "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+
+# Export results
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmetPCB.csv")
+
+# Modeling plots
+# (1) Get predicted values tpcb
+fit.lme.values.nbh.tpcb <- as.data.frame(fitted(lme.nbh.tpcb))
+# Add column name
+colnames(fit.lme.values.nbh.tpcb) <- c("predicted")
+# Add predicted values to data.frame
+nbh.tpcb$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
+
+# Plot prediction vs. observations, 1:1 line
+tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(100, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  scale_x_log10(limits = c(100, 10^8),
+                breaks = trans_breaks("log10", function(x) 10^x),
+                labels = trans_format("log10", math_format(10^.x))) +
+  xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
+  ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = 0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = -0.30103, slope = 1, col = "blue",
+              linewidth = 0.7) + # 2:1 line (factor of 2)
+  theme_bw() +
+  theme(aspect.ratio = 15/15) +
+  annotation_logticks(sides = "bl") +
+  annotate('text', x = 1000, y = 10^7,
+           label = expression(atop("New Bedford Harbor (R"^2*"= 0.90)",
+                                   paste("t"[1/2]*" = 5.0 ± 0.6 (yr)"))),
+           size = 4, fontface = 2)
+
+# Print plot
+print(tPCBObsPred)
+# Save plot
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.png",
+       plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
+
+# Plot residuals vs. predictions
+{
+  # Open a PNG graphics device
+  png("Output/Plots/Sites/Residual/res_plotlmeNewBedfordHarborResidualtPCB.png", width = 800,
+      height = 600)
+  # Create plot
+  plot(nbh.tpcb$predicted, resid(lme.nbh.tpcb),
+       points(nbh.tpcb$predicted, resid(lme.nbh.tpcb), pch = 16, 
+              col = "white"),
+       ylim = c(-2, 2),
+       xlab = expression(paste("Predicted lme concentration ",
+                               Sigma, "PCB (pg/L)")),
+       ylab = "Residual")
+  # Add lines to the plot
+  abline(0, 0)
+  abline(h = c(-1, 1), col = "grey")
+  abline(v = seq(0, 10^8, 500000), col = "grey")
+  # Close the PNG graphics device
+  dev.off()
+}
+
+# Estimate a factor of 2 between observations and predictions
+nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
+factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
+])/length(nbh.tpcb.1[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -224,17 +331,18 @@ shapiro.test(res.nbh.tpcb)
 }
 
 # LME for individual PCBs -------------------------------------------------
+# There are not enough number of samples from the same season
+# to perform lme, thus season is removed from this analisys.
 # Get covariates
 time <- nbh.pcb.1$time
-season <- nbh.pcb.1$season
 site <- nbh.pcb.1$site.numb
 
 # Create matrix to store results
-lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 21)
+lme.pcb <- matrix(nrow = length(nbh.pcb.2[1,]), ncol = 12)
 
 # Perform LME
 for (i in 1:length(nbh.pcb.2[1,])) {
-  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + (1|site),
+  fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -245,31 +353,22 @@ for (i in 1:length(nbh.pcb.2[1,])) {
   lme.pcb[i,4] <- fixef(fit)[2] # time
   lme.pcb[i,5] <- summary(fit)$coef[2,"Std. Error"] # time error
   lme.pcb[i,6] <- summary(fit)$coef[2,"Pr(>|t|)"] # time p-value
-  lme.pcb[i,7] <- fixef(fit)[3] # season 1
-  lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
-  lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # season 1 p-value
+  #lme.pcb[i,7] <- fixef(fit)[3] # season 1
+  #lme.pcb[i,8] <- summary(fit)$coef[3,"Std. Error"] # season 1 error
+  #lme.pcb[i,9] <- summary(fit)$coef[3,"Pr(>|t|)"] # season 1 p-value
   #lme.pcb[i,10] <- fixef(fit)[4] # season 2
   #lme.pcb[i,11] <- summary(fit)$coef[4,"Std. Error"] # season 2 error
   #lme.pcb[i,12] <- summary(fit)$coef[4,"Pr(>|t|)"] # season 2 p-value
   #lme.pcb[i,13] <- fixef(fit)[5] # season 3
   #lme.pcb[i,14] <- summary(fit)$coef[5,"Std. Error"] # season 3 error
   #lme.pcb[i,15] <- summary(fit)$coef[5,"Pr(>|t|)"] # season 3 p-value
-  lme.pcb[i,16] <- -log(2)/lme.pcb[i,4]/365 # t0.5
-  lme.pcb[i,17] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
-  lme.pcb[i,18] <- as.data.frame(VarCorr(fit))[1,'sdcor']
-  lme.pcb[i,19] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
-  lme.pcb[i,20] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
-  lme.pcb[i,21] <- shapiro.test(resid(fit))$p.value
+  lme.pcb[i,7] <- -log(2)/lme.pcb[i,4]/365 # t0.5
+  lme.pcb[i,8] <- abs(-log(2)/lme.pcb[i,4]/365)*lme.pcb[i,5]/abs(lme.pcb[i,4]) # t0.5 error
+  lme.pcb[i,9] <- as.data.frame(VarCorr(fit))[1,'sdcor']
+  lme.pcb[i,10] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2m']
+  lme.pcb[i,11] <- as.data.frame(r.squaredGLMM(fit))[1, 'R2c']
+  lme.pcb[i,12] <- shapiro.test(resid(fit))$p.value
 }
-
-# Problem with seasons
-# Need to run individual congeners, but only the ones that show normality.
-fit <- lmer(nbh.pcb.2[,i] ~ 1 + time + season + (1|site),
-            REML = FALSE,
-            control = lmerControl(check.nobs.vs.nlev = "ignore",
-                                  check.nobs.vs.rankZ = "ignore",
-                                  check.nobs.vs.nRE="ignore"))
-summary(fit)
 
 # Just 3 significant figures
 lme.pcb <- formatC(signif(lme.pcb, digits = 3))
@@ -279,10 +378,8 @@ lme.pcb <- as.data.frame(cbind(congeners, lme.pcb))
 # Add column names
 colnames(lme.pcb) <- c("Congeners", "Intercept", "Intercept.error",
                        "Intercept.pv", "time", "time.error", "time.pv",
-                       "season1", "season1.error", "season1, pv",
-                       "season2", "season2.error", "season2, pv", "season3",
-                       "season3.error", "season3.pv", "t05", "t05.error",
-                       "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
+                       "t05", "t05.error", "RandonEffectSiteStdDev",
+                       "R2nR", "R2R", "Normality")
 # Remove congeners with no normal distribution
 # Shapiro test p-value < 0.05
 lme.pcb$Normality <- as.numeric(lme.pcb$Normality)
@@ -291,10 +388,10 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/NBHLmenPCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/NewBedfordHarbor/NBHLmenPCB.csv")
 
 # Generate predictions
-# Select congeners that are not showing normality to be remove from che.pcb.2
+# Select congeners that are not showing normality to be remove from nbh.pcb.2
 df <- data.frame(names_to_remove = lme.pcb.out$Congeners)
 # Get column indices to remove
 cols_to_remove <- which(names(nbh.pcb.2) %in% df$names_to_remove)
@@ -306,7 +403,7 @@ lme.fit.pcb <- matrix(nrow = length(nbh.pcb.3[,1]),
                       ncol = length(nbh.pcb.3[1,]))
 
 for (i in 1:length(nbh.pcb.3[1,])) {
-  fit <- lmer(nbh.pcb.3[,i] ~ 1 + time + season + (1|site),
+  fit <- lmer(nbh.pcb.3[,i] ~ 1 + time + (1|site),
               REML = FALSE,
               control = lmerControl(check.nobs.vs.nlev = "ignore",
                                     check.nobs.vs.rankZ = "ignore",
@@ -341,23 +438,24 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.1, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+    geom_point(shape = 21, size = 3, fill = "white") +
+    scale_y_log10(limits = c(1, 10^6.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.1, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(1, 10^6.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
-    annotate('text', x = 25, y = 10^4.7, label = gsub("\\.", "+", names(df1)[i]),
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+    annotate('text', x = 50, y = 10^6, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/NewBedfordHarbor/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/NewBedfordHarbor/", col_name, ".png"),
+         plot = p, width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -371,29 +469,29 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.1, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+    geom_point(shape = 21, size = 3, fill = "white") +
+    scale_y_log10(limits = c(1, 10^6.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.1, 10^5), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(1, 10^6.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 25, y = 10^4.7, label = gsub("\\.", "+", col_name),
+    annotate('text', x = 50, y = 10^6, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/combined_plot.png", combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -423,11 +521,11 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
-  scale_y_log10(limits = c(0.1, 10^5), 
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  scale_y_log10(limits = c(1, 10^6.5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.1, 10^5), 
+  scale_x_log10(limits = c(1, 10^6.5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -436,16 +534,16 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
-  annotate("text", x = 1, y = 10^4.7,
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+  annotate("text", x = 50, y = 10^6,
            label = expression(atop("New Bedford Harbor",
-                                   paste("15 PCB congeners (n = 618)"))),
-           size = 3.3, fontface = 2)
+                                   paste("8 PCB congeners (n = 401 pairs)"))),
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
