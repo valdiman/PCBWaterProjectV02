@@ -74,25 +74,6 @@ hist(por.tpcb$tPCB)
 hist(log10(por.tpcb$tPCB))
 
 # (2) Time trend plots
-ggplot(por.tpcb, aes(y = tPCB,
-                     x = format(date,'%Y'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
-  xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concetration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 5.8, y = 10^3.7, label = "Portland Harbor",
-           size = 3)
-
-# (2) Time trend plots
 POTime <- ggplot(por.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
@@ -108,6 +89,9 @@ POTime <- ggplot(por.tpcb, aes(y = tPCB, x = format(date, '%Y'))) +
     axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print plot
+print(POTime)
 
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotPortlandTime.png",
@@ -215,6 +199,9 @@ summary(lme.por.tpcb)
   dev.off()
 }
 
+# Shapiro test
+shapiro.test(resid(lme.por.tpcb)) # p-value = 0.9216
+
 # Create matrix to store results
 {
   lme.tpcb <- matrix(nrow = 1, ncol = 24)
@@ -256,7 +243,7 @@ colnames(lme.tpcb) <- c("Intercept", "Intercept.error",
                         "RandonEffectSiteStdDev", "R2nR", "R2R", "Normality")
 
 # Export results
-write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandHarborLmetPCB.csv")
+write.csv(lme.tpcb, file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmetPCB.csv")
 
 # Modeling plots
 # (1) Get predicted values tpcb
@@ -268,44 +255,49 @@ por.tpcb.2$predicted <- 10^(fit.lme.values.por.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
-  scale_y_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  geom_point(shape = 21, size = 3, fill = "white") +
+  scale_y_log10(limits = c(1, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(10, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
+  scale_x_log10(limits = c(1, 10^4.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 50, y = 10^4.4,
            label = expression("Portland Harbor (R"^2*"= 0.68)"),
-           size = 3, fontface = 2)
+           size = 4, fontface = 2)
+
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborObsPredtPCB.pdf",
-       plot = p, device = "pdf")
+ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborObsPredtPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/PortlandHarborResidualtPCB.pdf")
-  plot(log10(por.tpcb.2$predicted), res.por.tpcb,
-       points(log10(por.tpcb.2$predicted), resid(lme.por.tpcb), pch = 16, 
-              col = "#66ccff"),
+  # Open a PNG graphics device
+  png("Output/Plots/Sites/Residual/res_plotlmePortlandHarborResidualtPCB.png", width = 800,
+      height = 600)
+  # Create plot
+  plot(por.tpcb.2$predicted, resid(lme.por.tpcb),
+       points(por.tpcb.2$predicted, resid(lme.por.tpcb), pch = 16, 
+              col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
+  # Add lines to the plot
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(2, 3.5, 0.5), col = "grey")
+  abline(v = seq(0, 2000, 500), col = "grey")
+  # Close the PNG graphics device
   dev.off()
-  }
+}
 
 # Estimate a factor of 2 between observations and predictions
 por.tpcb.2$factor2 <- por.tpcb.2$tPCB/por.tpcb.2$predicted
@@ -316,9 +308,9 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
 # Use por.1 (no 0s samples)
 # Prepare data.frame
 {
-  por.pcb <- subset(por.1, select = -c(SampleID:AroclorCongener))
+  por.pcb <- subset(por, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  por.pcb <- subset(por.pcb, select = -c(A1016:A1260))
+  por.pcb <- subset(por.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   por.pcb <- log10(por.pcb)
   # Replace -inf to NA
@@ -329,16 +321,22 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
   por.pcb.1 <- por.pcb[,
                        -which(colSums(is.na(por.pcb))/nrow(por.pcb) > 0.7)]
   # Add site ID
-  por.pcb.1$SiteID <- por.1$SiteID
+  SiteID <- factor(por$SiteID)
   # Change date format
-  por.pcb.1$SampleDate <- as.Date(por.1$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(por$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  por.pcb.1$time <- as.Date(por.1$SampleDate) - min(as.Date(por.1$SampleDate))
+  time.day <- data.frame(as.Date(por$SampleDate) - min(as.Date(por$SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
   # Create individual code for each site sampled
-  por.pcb.1$site.numb <- por.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- por$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  por.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
-                             labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  yq.s <- as.yearqtr(as.yearmon(por$SampleDate, "%m/%d/%Y") + 1/12)
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
+                     labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add date and time to por.pcb.1
+  por.pcb.1 <- cbind(por.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
   # Include flow data from USGS station Portland Harbor
   sitePorN1 <- "14211720" # WILLAMETTE RIVER AT PORTLAND, OR
   sitePorN2 <- "14211820" # COLUMBIA SLOUGH AT PORTLAND, OR No!
@@ -350,26 +348,26 @@ factor2.tpcb <- nrow(por.tpcb.2[por.tpcb.2$factor2 > 0.5 & por.tpcb.2$factor2 < 
                        min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
   flow.2 <- readNWISdv(sitePorN2, paramflow,
                        min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
-  temp.1 <- readNWISdv(sitePorN1, paramtemp,
+  temp <- readNWISdv(sitePorN1, paramtemp,
                        min(por.pcb.1$SampleDate), max(por.pcb.1$SampleDate))
   # Add USGS data to por.pcb.1, matching dates
   por.pcb.1$flow.1 <- 0.03*flow.1$X_00060_00003[match(por.pcb.1$SampleDate,
                                                      flow.1$Date)]
   por.pcb.1$flow.2 <- 0.03*flow.2$X_00060_00003[match(por.pcb.1$SampleDate,
                                                      flow.2$Date)]
-  por.pcb.1$temp.1 <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$SampleDate,
+  por.pcb.1$temp <- 273.15 + temp.1$X_00010_00003[match(por.pcb.1$SampleDate,
                                                          temp.1$Date)]
-  # Remove samples with temp.1 = NA
-  por.pcb.2 <- por.pcb.1[!is.na(por.pcb.1$temp.1), ]
+  # Remove samples with temp = NA
+  por.pcb.2 <- por.pcb.1[!is.na(por.pcb.1$temp), ]
   # Remove metadata
-  por.pcb.3 <- subset(por.pcb.2, select = -c(SiteID:temp.1))
+  por.pcb.3 <- subset(por.pcb.2, select = -c(SiteID:temp))
 }
 
 # LME for individual PCBs -------------------------------------------------
 # Get covariates
 time <- por.pcb.2$time
 flow <- por.pcb.2$flow.1
-temper <- por.pcb.2$temp.1
+temper <- por.pcb.2$temp
 season <- por.pcb.2$season
 site <- por.pcb.2$site.numb
 
@@ -430,7 +428,7 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/PortlandHarborLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/PortlandHarbor/PortlandHarborLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from por.pcb.2
@@ -480,23 +478,24 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    geom_point(shape = 21, size = 3, fill = "white") +
+    scale_y_log10(limits = c(0.001, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.5, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.001, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
-    annotate('text', x = 10^1, y = 10^4, label = gsub("\\.", "+", names(df1)[i]),
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+    annotate('text', x = 0.1, y = 10^3.5, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/PortlandHarbor/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/PortlandHarbor/", col_name, ".png"),
+         plot = p, width = 6, height = 6, dpi = 500)
 }
 
 # All plots in one page
@@ -509,10 +508,10 @@ for (i in 2:length(df1)) {
   # Create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
-    scale_y_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    geom_point(shape = 21, size = 3, fill = "white") +
+    scale_y_log10(limits = c(0.001, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
-    scale_x_log10(limits = c(0.01, 10^4), breaks = trans_breaks("log10", function(x) 10^x),
+    scale_x_log10(limits = c(0.001, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
     ylab(expression(bold("Predicted lme concentration PCBi (pg/L)"))) +
@@ -520,19 +519,19 @@ for (i in 2:length(df1)) {
     theme(aspect.ratio = 15/15, 
           axis.title = element_text(size = 8)) +
     annotation_logticks(sides = "bl") +
-    annotate('text', x = 0.5, y = 10^4, label = gsub("\\.", "+", col_name),
+    annotate('text', x = 0.5, y = 10^3.5, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8)
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
   plot_list[[i-1]] <- p  # add plot to list
 }
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 4)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/PortlandHarbor/combined_plot.png", plot = combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -562,11 +561,11 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
-  scale_y_log10(limits = c(0.005, 10^4), 
+  geom_point(shape = 21, size = 2.5, fill = "white") +
+  scale_y_log10(limits = c(0.001, 10^3.5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
-  scale_x_log10(limits = c(0.005, 10^4), 
+  scale_x_log10(limits = c(0.001, 10^3.5), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration PCBi (pg/L)"))) +
@@ -575,16 +574,16 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
-  annotate("text", x = 1, y = 10^3.7,
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
+  annotate("text", x = 0.5, y = 10^3,
            label = expression(atop("Portland Harbor",
-                                   paste("29 PCB congeners (n = 1776)"))),
-           size = 3.3, fontface = 2)
+                                   paste("28 PCB congeners (n = 1776 pairs)"))),
+           size = 4, fontface = 2)
 # See plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/POrtlandHarbor/PortlandHarborObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/POrtlandHarbor/PortlandHarborObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
