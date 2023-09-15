@@ -280,6 +280,9 @@ summary(lme.fox.tpcb)
   dev.off()
 }
 
+# Shapiro-Wilk normatily test
+shapiro.test(resid(lme.fox.tpcb))
+
 # Create matrix to store results from lme analysis
 {
   lme.tpcb <- matrix(nrow = 1, ncol = 24)
@@ -364,7 +367,7 @@ ggsave("Output/Plots/Sites/ObsPred/FoxRiver/FoxRiverObsPredtPCB.png",
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeFoxRiverResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmeFoxRivertPCB.png", width = 800,
       height = 600)
   # Create plot
   plot(fox.tpcb.1$predicted, resid(lme.fox.tpcb),
@@ -402,6 +405,7 @@ factor2.tpcb <- nrow(fox.tpcb.1[fox.tpcb.1$factor2 > 0.5 & fox.tpcb.1$factor2 < 
   # Remove individual PCB that have 30% or less NA values
   fox.pcb.1 <- fox.pcb[,
                        -which(colSums(is.na(fox.pcb))/nrow(fox.pcb) > 0.7)]
+  
   # Add site ID
   SiteID <- factor(fox$SiteID)
   # Change date format
