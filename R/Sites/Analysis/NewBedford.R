@@ -270,7 +270,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmeNewBedfordHarborResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmeNewBedfordHarbortPCB.png", width = 800,
       height = 600)
   # Create plot
   plot(nbh.tpcb$predicted, resid(lme.nbh.tpcb),
