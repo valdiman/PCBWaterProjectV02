@@ -318,7 +318,7 @@ p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 200, y = 10^5.8,
            label = expression(atop("Kalamazoo River (R"^2*"= 0.97)",
-                                   paste("t"[1/2]*" = 3 ± 0.1 (yr)"))),
+                                   paste("t"[1/2]*" = 3.3 ± 0.1 (yr)"))),
            size = 4, fontface = 2)
 # See plot
 print(p)
@@ -329,7 +329,7 @@ ggsave("Output/Plots/Sites/ObsPred/KalamazooRiver/KalamazooRiverObsPredtPCB.png"
 # Plot residuals vs. predictions
 {
   # Create pdf file
-  png("Output/Plots/Sites/Residual/res_plotlmeKalamazooRiverResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmeKalamazooRivertPCB.png", width = 800,
       height = 600)
   # Create plot
   plot(kal.tpcb.2$predicted, resid(lme.kal.tpcb),
