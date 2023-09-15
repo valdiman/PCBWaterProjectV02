@@ -251,6 +251,9 @@ summary(lme.kal.tpcb)
   dev.off()
 }
 
+# Shapiro-Wilk normatily test
+shapiro.test(resid(lme.kal.tpcb))
+
 # Create matrix to store results
 {
   lme.tpcb <- matrix(nrow = 1, ncol = 21)
