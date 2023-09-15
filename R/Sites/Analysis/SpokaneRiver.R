@@ -89,6 +89,9 @@ SPOTime <- ggplot(spo.tpcb, aes(y = tPCB, x = format(date, '%Y-%m'))) +
     axis.title.x = element_text(face = "bold", size = 17),
     plot.margin = margin(0, 0, 0, 0, unit = "cm"))
 
+# Print plot
+print(SPOTime)
+
 # Save plot in folder
 ggsave("Output/Plots/Sites/Temporal/plotSpokaneTime.png",
        plot = SPOTime, width = 6, height = 5, dpi = 500)
@@ -189,23 +192,28 @@ hist(spo.tpcb.2$tPCB)
 hist(log10(spo.tpcb.2$tPCB))
 
 # (2) Time trend plots
-ggplot(spo.tpcb.2, aes(y = tPCB,
-                     x = format(date,'%Y-%m'))) +
-  geom_point(shape = 21, size = 2, fill = "#66ccff") +
+SPOTimeV02 <- ggplot(spo.tpcb.2, aes(y = tPCB, x = format(date, '%Y-%m'))) +
+  geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
-  scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
-                labels = trans_format("log10", math_format(10^.x))) +
-  theme_bw() +
-  theme(aspect.ratio = 5/15) +
-  ylab(expression(bold(atop("Water Concentration",
-                            paste(Sigma*"PCB (pg/L)"))))) +
-  theme(axis.text.y = element_text(face = "bold", size = 9),
-        axis.title.y = element_text(face = "bold", size = 10)) +
-  theme(axis.text.x = element_text(face = "bold", size = 9,
-                                   angle = 60, hjust = 1),
-        axis.title.x = element_text(face = "bold", size = 9)) +
-  annotate("text", x = 4, y = 10^3, label = "Spokane River",
-           size = 3)
+  scale_y_log10(
+    breaks = c(1, 10, 100, 1000, 10000),  # Specify the desired breaks
+    labels = label_comma()(c(1, 10, 100, 1000, 10000))  # Specify the desired labels
+  ) +
+  theme_classic() +
+  ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
+  theme(
+    axis.text.y = element_text(face = "bold", size = 20),
+    axis.title.y = element_text(face = "bold", size = 18),
+    axis.text.x = element_text(size = 20, angle = 60, hjust = 1),
+    axis.title.x = element_text(face = "bold", size = 17),
+    plot.margin = margin(0, 0, 0, 0, unit = "cm"))
+
+# Print plot
+print(SPOTimeV02)
+
+# Save plot in folder
+ggsave("Output/Plots/Sites/Temporal/plotSpokaneTimeV02.png",
+       plot = SPOTimeV02, width = 6, height = 5, dpi = 500)
 
 # (3) Sites
 ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
@@ -310,44 +318,47 @@ spo.tpcb.2$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
 ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
-  geom_point(shape = 21, size = 3, fill = "#66ccff") +
+  geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   xlab(expression(bold("Observed concentration " *Sigma*"PCB (pg/L)"))) +
   ylab(expression(bold("Predicted lme concentration " *Sigma*"PCB (pg/L)"))) +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) + # 2:1 line (factor of 2)
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
   theme(aspect.ratio = 15/15) +
   annotation_logticks(sides = "bl") +
   annotate('text', x = 30, y = 10^3.4,
            label = expression(atop("Spokane River (R"^2*"= 0.58)",
                                    paste(""))),
-           size = 3, fontface = 2)
-# See plot
+           size = 4, fontface = 2)
+# Print plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
-  # Create pdf file
-  pdf("Output/Plots/Sites/Residual/SpokaneRiverResidualtPCB.pdf")
-  plot(log10(spo.tpcb.2$predicted.1), res.spo.tpcb,
-       points(log10(spo.tpcb.2$predicted.1), res.spo.tpcb, pch = 16, 
-              col = "#66ccff"),
-       xlim = c(1.5, 3),
+  # Open a PNG graphics device
+  png("Output/Plots/Sites/Residual/res_plotSpokaneRiverResidualtPCB.png", width = 800,
+      height = 600)
+  # Create plot
+  plot(spo.tpcb.2$predicted.1, resid(lme.spo.tpcb),
+       points(spo.tpcb.2$predicted.1, resid(lme.spo.tpcb), pch = 16, 
+              col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
                                Sigma, "PCB (pg/L)")),
        ylab = "Residual")
+  # Add lines to the plot
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(1.5, 3, 0.5), col = "grey")
+  abline(v = seq(0, 5000, 1000), col = "grey")
+  # Close the PNG graphics device
   dev.off()
   }
 
@@ -357,12 +368,11 @@ factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 
                                 ])/length(spo.tpcb.2[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
-# Use spo.1 (no 0s samples)
 # Prepare data.frame
 {
-  spo.pcb <- subset(spo.1, select = -c(SampleID:AroclorCongener))
+  spo.pcb <- subset(spo, select = -c(SampleID:AroclorCongener))
   # Remove Aroclor data
-  spo.pcb <- subset(spo.pcb, select = -c(A1016:A1260))
+  spo.pcb <- subset(spo.pcb, select = -c(A1016:tPCB))
   # Log10 individual PCBs 
   spo.pcb <- log10(spo.pcb)
   # Replace -inf to NA
@@ -370,17 +380,18 @@ factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 
                      lapply(spo.pcb,
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
-  spo.pcb.1 <- spo.pcb[, colMeans(!is.na(spo.pcb)) >= 0.7]
+  spo.pcb.1 <- spo.pcb[,
+                       -which(colSums(is.na(spo.pcb))/nrow(spo.pcb) > 0.7)]
   # Add site ID
-  spo.pcb.1$SiteID <- spo.1$SiteID
+  SiteID <- factor(spo$SiteID)
   # Change date format
-  spo.pcb.1$SampleDate <- as.Date(spo.1$SampleDate, format = "%m/%d/%y")
+  SampleDate <- as.Date(spo$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  spo.pcb.1$time <- as.Date(spo.1$SampleDate) - min(as.Date(spo.1$SampleDate))
+  time.day <- data.frame(as.Date(spo$SampleDate) - min(as.Date(spo$SampleDate)))
   # Create individual code for each site sampled
-  spo.pcb.1$site.numb <- spo.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- spo$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  spo.pcb.1$season <- factor(format(yq.s, "%q"), levels = 1:4,
+  season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Include flow data from USGS station
   siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
@@ -532,7 +543,7 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 3, fill = "#66ccff") +
+    geom_point(shape = 21, size = 3, fill = "white") +
     scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
@@ -542,13 +553,14 @@ for (i in 2:length(df1)) {
     theme_bw() +
     theme(aspect.ratio = 15/15) +
     annotation_logticks(sides = "bl") +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+    geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+    geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
     annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", names(df1)[i]),
              size = 3, fontface = 2)
   # save plot
-  ggsave(paste0("Output/Plots/Sites/ObsPred/SpokaneRiver/", col_name, ".pdf"), plot = p)
+  ggsave(paste0("Output/Plots/Sites/ObsPred/SpokaneRiver/", col_name, ".png"), plot = p,
+         width = 6, height = 6, dpi = 500)
 }
 
 # (2)
@@ -562,7 +574,7 @@ for (i in 2:length(df1)) {
   # create plot for each pair of columns and add to plot_list
   p <- ggplot(data = data.frame(x = df1$code, y1 = 10^(df1[, i]), y2 = 10^(df2[, i])),
               aes(x = y1, y = y2)) +
-    geom_point(shape = 21, size = 2, fill = "#66ccff") +
+    geom_point(shape = 21, size = 2, fill = "white") +
     scale_y_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
                   labels = trans_format("log10", math_format(10^.x))) +
     scale_x_log10(limits = c(0.01, 10^3), breaks = trans_breaks("log10", function(x) 10^x),
@@ -576,7 +588,7 @@ for (i in 2:length(df1)) {
     annotation_logticks(sides = "bl") +
     annotate('text', x = 1, y = 10^2.7, label = gsub("\\.", "+", col_name),
              size = 2.5, fontface = 2) +
-    geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 0.8) +
+    geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
     geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
     geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7)
   
@@ -585,8 +597,8 @@ for (i in 2:length(df1)) {
 # Combine all the plots using patchwork
 combined_plot <- wrap_plots(plotlist = plot_list, ncol = 7)
 # Save the combined plot
-ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/combined_plot.pdf", combined_plot,
-       width = 15, height = 15)
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/combined_plot.png", combined_plot,
+       width = 15, height = 15, dpi = 500)
 
 # (3)
 # Create a list to store all the cleaned data frames
@@ -616,7 +628,7 @@ for (i in 2:length(df1)) {
 
 # Plot all the pairs together
 p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
-  geom_point(shape = 21, size = 2.5, fill = "#66ccff") +
+  geom_point(shape = 21, size = 2.5, fill = "white") +
   scale_y_log10(limits = c(0.01, 10^3), 
                 breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -629,16 +641,16 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   theme(aspect.ratio = 15/15, 
         axis.title = element_text(size = 10)) +
   annotation_logticks(sides = "bl") +
-  geom_abline(intercept = 0, slope = 1, col = "red", linewidth = 1.3) +
-  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.8) + # 1:2 line (factor of 2)
-  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.8) +
+  geom_abline(intercept = 0, slope = 1, col = "black", linewidth = 0.7) +
+  geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
+  geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^2.7,
            label = expression(atop("Spokane River",
                                    paste("69 PCB congeners (n = 2967)"))),
-           size = 3.3, fontface = 2)
-# See plot
+           size = 4, fontface = 2)
+# Print plot
 print(p)
 # Save plot
-ggsave(filename = "Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredPCB.pdf",
-       plot = p, device = "pdf")
+ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredPCB.png",
+       plot = p, width = 8, height = 8, dpi = 500)
 
