@@ -115,7 +115,7 @@ ggplot(spo.tpcb, aes(x = season, y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 1, y = 10^4.2, label = "Spokane River",
            size = 3)
@@ -138,7 +138,7 @@ ggplot(spo.tpcb, aes(x = factor(SiteID), y = tPCB)) +
         axis.ticks.length = unit(0.2, "cm")) +
   annotation_logticks(sides = "l") +
   geom_jitter(position = position_jitter(0.3), cex = 1.2,
-              shape = 21, fill = "#66ccff") +
+              shape = 21, fill = "white") +
   geom_boxplot(width = 0.7, outlier.shape = NA, alpha = 0) +
   annotate("text", x = 2.5, y = 10^4.2, label = "Spokane River",
            size = 3)
@@ -177,27 +177,27 @@ ggplot(spo.tpcb, aes(x = factor(SiteID), y = tPCB)) +
 # Remove site -------------------------------------------------------------
 ## Sample sites not located at the Spokane River
 {
-  spo.tpcb.2 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR005")) # Regional WRF
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
-  spo.tpcb.2 <- subset(spo.tpcb.2, SiteID != c("WCPCB-SPR015")) # Hagman Creek
+  spo.tpcb.1 <- subset(spo.tpcb, SiteID != c("WCPCB-SPR002")) # City of Spokane WRF
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR005")) # Regional WRF
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR006")) # Inland Empire paper
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR008")) # Kaiser Aluminum
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR010")) # Liberty Lake sewer
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR011")) # Post Falls WWTP
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR013")) # Coeur d'Alene WWTP
+  spo.tpcb.1 <- subset(spo.tpcb.1, SiteID != c("WCPCB-SPR015")) # Hagman Creek
 }
 
 # (1) Histograms
-hist(spo.tpcb.2$tPCB)
-hist(log10(spo.tpcb.2$tPCB))
+hist(spo.tpcb.1$tPCB)
+hist(log10(spo.tpcb.1$tPCB))
 
 # (2) Time trend plots
-SPOTimeV02 <- ggplot(spo.tpcb.2, aes(y = tPCB, x = format(date, '%Y-%m'))) +
+SPOTimeV02 <- ggplot(spo.tpcb.1, aes(y = tPCB, x = format(date, '%Y-%m'))) +
   geom_point(shape = 21, size = 3, fill = "white") +
   xlab("") +
   scale_y_log10(
-    breaks = c(1, 10, 100, 1000, 10000),  # Specify the desired breaks
-    labels = label_comma()(c(1, 10, 100, 1000, 10000))  # Specify the desired labels
+    breaks = c(10, 100, 1000),  # Specify the desired breaks
+    labels = label_comma()(c(10, 100, 1000))  # Specify the desired labels
   ) +
   theme_classic() +
   ylab(expression(bold(Sigma*"PCB (pg/L)"))) +
@@ -216,7 +216,7 @@ ggsave("Output/Plots/Sites/Temporal/plotSpokaneTimeV02.png",
        plot = SPOTimeV02, width = 6, height = 5, dpi = 500)
 
 # (3) Sites
-ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) + 
+ggplot(spo.tpcb.1, aes(x = factor(SiteID), y = tPCB)) + 
   scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   theme_bw() +
@@ -241,11 +241,11 @@ ggplot(spo.tpcb.2, aes(x = factor(SiteID), y = tPCB)) +
 # tPCB Regressions --------------------------------------------------------
 # Perform Linear Mixed-Effects Model (lme)
 # Get variables
-tpcb <- spo.tpcb.2$tPCB
-time <- spo.tpcb.2$time
-flow <- spo.tpcb.2$flow.4 # use flow 4
-site <- spo.tpcb.2$site.code
-season <- spo.tpcb.2$season
+tpcb <- spo.tpcb.1$tPCB
+time <- spo.tpcb.1$time
+flow <- spo.tpcb.1$flow.4 # use flow 4
+site <- spo.tpcb.1$site.code
+season <- spo.tpcb.1$season
 # tPCB vs. time + season + flow + temp + site
 lme.spo.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + season + (1|site),
                      REML = FALSE,
@@ -268,6 +268,9 @@ summary(lme.spo.tpcb)
   qqline(res.spo.tpcb)
   dev.off()
 }
+
+# Shapiro-Wilk normatily test
+shapiro.test(resid(lme.spo.tpcb))
 
 # Create matrix to store results
 {
@@ -314,10 +317,10 @@ fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 # Add column name
 colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
-spo.tpcb.2$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
+spo.tpcb.1$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
 
 # Plot prediction vs. observations, 1:1 line
-ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
+tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
   geom_point(shape = 21, size = 3, fill = "white") +
   scale_y_log10(limits = c(10, 10^3.5), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
@@ -335,20 +338,22 @@ ggplot(spo.tpcb.2, aes(x = tPCB, y = predicted.1)) +
            label = expression(atop("Spokane River (R"^2*"= 0.58)",
                                    paste(""))),
            size = 4, fontface = 2)
+
 # Print plot
-print(p)
+print(tPCBObsPred)
+
 # Save plot
 ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
-       plot = p, width = 8, height = 8, dpi = 500)
+       plot = tPCBObsPred, width = 8, height = 8, dpi = 500)
 
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotSpokaneRiverResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotSpokaneRivertPCB.png", width = 800,
       height = 600)
   # Create plot
-  plot(spo.tpcb.2$predicted.1, resid(lme.spo.tpcb),
-       points(spo.tpcb.2$predicted.1, resid(lme.spo.tpcb), pch = 16, 
+  plot(spo.tpcb.1$predicted.1, resid(lme.spo.tpcb),
+       points(spo.tpcb.1$predicted.1, resid(lme.spo.tpcb), pch = 16, 
               col = "white"),
        ylim = c(-2, 2),
        xlab = expression(paste("Predicted lme concentration ",
@@ -357,15 +362,15 @@ ggsave("Output/Plots/Sites/ObsPred/SpokaneRiver/SpokaneRiverObsPredtPCB.png",
   # Add lines to the plot
   abline(0, 0)
   abline(h = c(-1, 1), col = "grey")
-  abline(v = seq(0, 5000, 1000), col = "grey")
+  abline(v = seq(0, 500, 50), col = "grey")
   # Close the PNG graphics device
   dev.off()
   }
 
 # Estimate a factor of 2 between observations and predictions
-spo.tpcb.2$factor2 <- spo.tpcb.2$tPCB/spo.tpcb.2$predicted.1
-factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 2,
-                                ])/length(spo.tpcb.2[,1])*100
+spo.tpcb.1$factor2 <- spo.tpcb.1$tPCB/spo.tpcb.1$predicted.1
+factor2.tpcb <- nrow(spo.tpcb.1[spo.tpcb.1$factor2 > 0.5 & spo.tpcb.1$factor2 < 2,
+                                ])/length(spo.tpcb.1[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
@@ -380,19 +385,24 @@ factor2.tpcb <- nrow(spo.tpcb.2[spo.tpcb.2$factor2 > 0.5 & spo.tpcb.2$factor2 < 
                      lapply(spo.pcb,
                             function(x) replace(x, is.infinite(x), NA)))
   # Remove individual PCB that have 30% or less NA values
-  spo.pcb.1 <- spo.pcb[,
-                       -which(colSums(is.na(spo.pcb))/nrow(spo.pcb) > 0.7)]
+  spo.pcb.1 <- spo.pcb[, colSums(is.na(spo.pcb))/nrow(spo.pcb) <= 0.7]
   # Add site ID
   SiteID <- factor(spo$SiteID)
   # Change date format
   SampleDate <- as.Date(spo$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(spo$SampleDate) - min(as.Date(spo$SampleDate)))
+  time.day <- data.frame(as.Date(SampleDate) - min(as.Date(SampleDate)))
+  # Change name time.day to time
+  colnames(time.day) <- "time"
   # Create individual code for each site sampled
   site.numb <- spo$SiteID %>% as.factor() %>% as.numeric
   # Include season
+  yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                              labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
+  # Add date and time to spo.pcb.1
+  spo.pcb.1 <- cbind(spo.pcb.1, SiteID, SampleDate, data.frame(time.day),
+                     site.numb, season.s)
   # Include flow data from USGS station
   siteSpoN1 <- "12417650" # SPOKANE RIVER BLW BLACKWELL NR COEUR D ALENE ID
   siteSpoN2 <- "12419000" # Spokane River near Post Falls, ID
@@ -493,7 +503,7 @@ lme.pcb.out <- lme.pcb[lme.pcb$Normality < 0.05, ]
 lme.pcb <- lme.pcb[lme.pcb$Normality > 0.05, ]
 
 # Export results
-write.csv(lme.pcb, file = "Output/Data/Sites/csv/SpokaneRiverLmePCB.csv")
+write.csv(lme.pcb, file = "Output/Data/Sites/csv/SpokaneRiver/SpokaneRiverLmePCB.csv")
 
 # Generate predictions
 # Select congeners that are not showing normality to be remove from spo.pcb.2
@@ -646,7 +656,7 @@ p <- ggplot(combined_cleaned_df, aes(x = 10^(observed), y = 10^(predicted))) +
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) +
   annotate("text", x = 1, y = 10^2.7,
            label = expression(atop("Spokane River",
-                                   paste("69 PCB congeners (n = 2967)"))),
+                                   paste("69 PCB congeners (n = 2967 pairs)"))),
            size = 4, fontface = 2)
 # Print plot
 print(p)
