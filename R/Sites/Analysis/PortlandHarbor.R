@@ -281,7 +281,7 @@ ggsave(filename = "Output/Plots/Sites/ObsPred/PortlandHarbor/PortlandHarborObsPr
 # Plot residuals vs. predictions
 {
   # Open a PNG graphics device
-  png("Output/Plots/Sites/Residual/res_plotlmePortlandHarborResidualtPCB.png", width = 800,
+  png("Output/Plots/Sites/Residual/res_plotlmePortlandHarbortPCB.png", width = 800,
       height = 600)
   # Create plot
   plot(por.tpcb.2$predicted, resid(lme.por.tpcb),
