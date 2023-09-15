@@ -35,30 +35,26 @@ install.packages("scales")
 
 # Read data ---------------------------------------------------------------
 # Data in pg/L
-wdc <- read.csv("Data/WaterDataCongenerAroclor08052022.csv")
+wdc <- read.csv("Data/WaterDataCongenerAroclor09072023.csv")
 
 # Select Spokane River data ---------------------------------------------------
-spo.0 <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
+spo <- wdc[str_detect(wdc$LocationName, 'Spokane River'),]
 
 # Data preparation --------------------------------------------------------
 {
-  # Remove samples (rows) with total PCBs  = 0
-  spo.1 <- spo.0[!(rowSums(spo.0[, c(14:117)], na.rm = TRUE)==0),]
-  # Calculate total PCB
-  tpcb.spo <- rowSums(spo.1[, c(14:117)], na.rm = T)
   # Change date format
-  spo.1$SampleDate <- as.Date(spo.1$SampleDate, format = "%m/%d/%y")
+  spo$SampleDate <- as.Date(spo$SampleDate, format = "%m/%d/%y")
   # Calculate sampling time
-  time.day <- data.frame(as.Date(spo.1$SampleDate) - min(as.Date(spo.1$SampleDate)))
+  time.day <- data.frame(as.Date(spo$SampleDate) - min(as.Date(spo$SampleDate)))
   # Create individual code for each site sampled
-  site.numb <- spo.1$SiteID %>% as.factor() %>% as.numeric
+  site.numb <- spo$SiteID %>% as.factor() %>% as.numeric
   # Include season
-  yq.s <- as.yearqtr(as.yearmon(spo.1$SampleDate, "%m/%d/%Y") + 1/12)
+  yq.s <- as.yearqtr(as.yearmon(spo$SampleDate, "%m/%d/%Y") + 1/12)
   season.s <- factor(format(yq.s, "%q"), levels = 1:4,
                      labels = c("0", "S-1", "S-2", "S-3")) # winter, spring, summer, fall
   # Create data frame
-  spo.tpcb <- cbind(factor(spo.1$SiteID), spo.1$SampleDate,
-                    spo.1$Latitude, spo.1$Longitude, as.matrix(tpcb.spo),
+  spo.tpcb <- cbind(factor(spo$SiteID), spo$SampleDate,
+                    spo$Latitude, spo$Longitude, as.matrix(spo$tPCB),
                     data.frame(time.day), site.numb, season.s)
   # Add column names
   colnames(spo.tpcb) <- c("SiteID", "date", "Latitude", "Longitude",
