@@ -333,6 +333,11 @@ fit.lme.values.fox.tpcb <- as.data.frame(fitted(lme.fox.tpcb))
 colnames(fit.lme.values.fox.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 fox.tpcb.1$predicted <- 10^(fit.lme.values.fox.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = fox.tpcb.1$tPCB, predicted = fox.tpcb.1$predicted)
+predic.obs <- data.frame(Location = fox$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/FoxRiver/FoxRiverPredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(fox.tpcb.1, aes(x = tPCB, y = predicted)) +
