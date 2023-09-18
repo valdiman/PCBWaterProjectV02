@@ -176,7 +176,7 @@ summary(lme.che.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(res.che.tpcb)
+shapiro.test(resid(lme.che.tpcb))
 
 # Remove minimum and bottom 2 values, ~ 10 pg/L
 che.tpcb.1 <- subset(che.tpcb,tPCB > 10)
@@ -210,7 +210,7 @@ summary(lme.che.tpcb)
   dev.off()
 }
 # Shapiro test
-shapiro.test(res.che.tpcb)
+shapiro.test(resid(lme.che.tpcb))
 
 # Create matrix to store results
 {
