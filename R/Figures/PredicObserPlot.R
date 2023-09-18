@@ -40,7 +40,7 @@ custom_colors <- brewer.pal(6, "Set1")
 
 # Plot prediction vs. observations, 1:1 line
 CombinePredObsPlot <- ggplot(combined_data, aes(x = tPCB, y = predicted, fill = Location)) +
-  geom_point(shape = 21, size = 2) +  # Use shape 21 for solid-filled dots
+  geom_point(shape = 21, size = 2) +
   scale_y_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
                 labels = trans_format("log10", math_format(10^.x))) +
   scale_x_log10(limits = c(1, 10^8), breaks = trans_breaks("log10", function(x) 10^x),
@@ -52,7 +52,11 @@ CombinePredObsPlot <- ggplot(combined_data, aes(x = tPCB, y = predicted, fill = 
   geom_abline(intercept = log10(2), slope = 1, col = "blue", linewidth = 0.7) + # 1:2 line (factor of 2)
   geom_abline(intercept = log10(0.5), slope = 1, col = "blue", linewidth = 0.7) + # 2:1 line (factor of 2)
   theme_bw() +
-  theme(aspect.ratio = 15/15) +
+  theme(aspect.ratio = 15/15,
+        axis.text = element_text(size = 12),
+        axis.title = element_text(size = 14),
+        legend.title = element_text(size = 14),
+        legend.text = element_text(size = 12))  +
   annotation_logticks(sides = "bl")
 
 # Print plot
