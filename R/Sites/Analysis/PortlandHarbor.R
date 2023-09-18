@@ -252,6 +252,11 @@ fit.lme.values.por.tpcb <- as.data.frame(fitted(lme.por.tpcb))
 colnames(fit.lme.values.por.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 por.tpcb.2$predicted <- 10^(fit.lme.values.por.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = por.tpcb.2$tPCB, predicted = por.tpcb.2$predicted)
+predic.obs <- data.frame(Location = por$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(por.tpcb.2, aes(x = tPCB, y = predicted)) +
