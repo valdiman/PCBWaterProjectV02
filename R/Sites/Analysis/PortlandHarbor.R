@@ -177,7 +177,7 @@ season <- por.tpcb.2$season
 flow <- por.tpcb.2$flow.1 # use 1
 tem <- por.tpcb.2$temp
 # tPCB vs. time + season + flow + temp + site
-lme.por.tpcb <- lmer(log10(tpcb) ~ 1 + time + season + flow + tem + (1|site),
+lme.por.tpcb <- lmer(log10(tpcb) ~ 1 + time + flow + tem + season + (1|site),
                      REML = FALSE,
                      control = lmerControl(check.nobs.vs.nlev = "ignore",
                                            check.nobs.vs.rankZ = "ignore",
