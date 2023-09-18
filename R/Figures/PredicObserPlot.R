@@ -12,27 +12,28 @@ install.packages("RColorBrewer")
 }
 
 # Read generated data
-# Chesapeake Bay data
-che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
-che <- che[, -1]
-# Fox River data
-fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverPredic_Obser.csv")
-fox <- fox[, -1]
-# New Bedford Harbor data
-kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
-kal <- kal[, -1]
-# New Bedford Harbor data
-nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
-nbh <- nbh[, -1]
-# Portland Harbord data
-por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
-por <- por[, -1]
-# Spokane River data
-spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
-spo <- spo[, -1]
-
-# Combine the data frames
-combined_data <- rbind(che, fox, kal, nbh, por, spo)
+{
+  # Chesapeake Bay data
+  che <- read.csv("Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
+  che <- che[, -1]
+  # Fox River data
+  fox <- read.csv("Output/Data/Sites/csv/FoxRiver/FoxRiverPredic_Obser.csv")
+  fox <- fox[, -1]
+  # New Bedford Harbor data
+  kal <- read.csv("Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
+  kal <- kal[, -1]
+  # New Bedford Harbor data
+  nbh <- read.csv("Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
+  nbh <- nbh[, -1]
+  # Portland Harbord data
+  por <- read.csv("Output/Data/Sites/csv/PortlandHarbor/PortlandPredic_Obser.csv")
+  por <- por[, -1]
+  # Spokane River data
+  spo <- read.csv("Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
+  spo <- spo[, -1]
+  # Combine the data frames
+  combined_data <- rbind(che, fox, kal, nbh, por, spo)
+}
 
 # Create a custom color palette with distinct colors for the 6 locations
 custom_colors <- brewer.pal(6, "Set1")
