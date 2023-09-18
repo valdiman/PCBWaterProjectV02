@@ -318,6 +318,11 @@ fit.lme.values.spo.tpcb <- as.data.frame(fitted(lme.spo.tpcb))
 colnames(fit.lme.values.spo.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 spo.tpcb.1$predicted.1 <- 10^(fit.lme.values.spo.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = spo.tpcb.1$tPCB, predicted = spo.tpcb.1$predicted.1)
+predic.obs <- data.frame(Location = spo$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/SpokaneRiver/SpokanePredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(spo.tpcb.1, aes(x = tPCB, y = predicted.1)) +
