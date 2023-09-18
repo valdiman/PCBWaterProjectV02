@@ -291,7 +291,7 @@ ggsave("Output/Plots/Sites/ObsPred/NewBedfordHarbor/NewBedfordHarborObsPredtPCB.
 # Estimate a factor of 2 between observations and predictions
 nbh.tpcb$factor2 <- nbh.tpcb$tPCB/nbh.tpcb$predicted
 factor2.tpcb <- nrow(nbh.tpcb[nbh.tpcb$factor2 > 0.5 & nbh.tpcb$factor2 < 2,
-])/length(nbh.tpcb.1[,1])*100
+])/length(nbh.tpcb[,1])*100
 
 # Individual PCB Analysis -------------------------------------------------
 # Prepare data.frame
