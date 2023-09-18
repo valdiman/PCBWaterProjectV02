@@ -300,6 +300,12 @@ fit.lme.values.kal.tpcb <- as.data.frame(fitted(lme.kal.tpcb))
 colnames(fit.lme.values.kal.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 kal.tpcb.2$predicted <- 10^(fit.lme.values.kal.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = kal.tpcb.2$tPCB, predicted = kal.tpcb.2$predicted)
+predic.obs <- data.frame(Location = kal$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/KalamazooRiver/KalamazooPredic_Obser.csv")
+
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(kal.tpcb.2, aes(x = tPCB, y = predicted)) +
