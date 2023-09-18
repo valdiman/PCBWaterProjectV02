@@ -236,6 +236,11 @@ fit.lme.values.nbh.tpcb <- as.data.frame(fitted(lme.nbh.tpcb))
 colnames(fit.lme.values.nbh.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 nbh.tpcb$predicted <- 10^(fit.lme.values.nbh.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = nbh.tpcb$tPCB, predicted = nbh.tpcb$predicted)
+predic.obs <- data.frame(Location = nbh$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/NewBedfordHarbor/NBHPredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 tPCBObsPred <- ggplot(nbh.tpcb, aes(x = tPCB, y = predicted)) +
