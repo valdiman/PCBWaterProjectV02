@@ -258,6 +258,11 @@ fit.lme.values.che.tpcb <- as.data.frame(fitted(lme.che.tpcb))
 colnames(fit.lme.values.che.tpcb) <- c("predicted")
 # Add predicted values to data.frame
 che.tpcb.1$predicted <- 10^(fit.lme.values.che.tpcb$predicted)
+# Create overall plot prediction vs. observations
+predic.obs <- data.frame(tPCB = che.tpcb.1$tPCB, predicted = che.tpcb.1$predicted)
+predic.obs <- data.frame(Location = che$LocationName[1], predic.obs)
+# Save new data
+write.csv(predic.obs, "Output/Data/Sites/csv/ChesapeakeBay/ChesapeakePredic_Obser.csv")
 
 # Plot prediction vs. observations, 1:1 line
 p <- ggplot(che.tpcb.1, aes(x = tPCB, y = predicted)) +
