@@ -71,13 +71,14 @@ maploc <- ggplot() +
   geom_point(data = tpcb.ave, aes(x = Longitude, y = Latitude),
              color = "black",
              size = 1.2, shape = 20) +
-  annotate(geom = 'table', x = -55, y = 53,
-           label = list(wdc.3), size = 2.9) # add table with info
+  annotate(geom = 'table', x = -128, y = 53,
+           label = list(wdc.3), size = 1.75) # add table with info
 
-print(maploc)  # Print the plot
+# Print the plot
+print(maploc)
 
 # Save map in folder
-ggsave("Output/Maps/Global/maplocV01.png", plot = maploc,
+ggsave("Output/Maps/Global/maplocV02.png", plot = maploc,
        width = 9, height = 4, dpi = 300)
 
 # (2) Map + tPCB
@@ -104,7 +105,7 @@ maptPCB <- ggplot() +
 print(maptPCB)  # Print the plot
 
 # Save map in folder
-ggsave("Output/Maps/Global/maptPCBV01.png", plot = maptPCB,
+ggsave("Output/Maps/Global/maptPCBV02.png", plot = maptPCB,
        width = 14, height = 4, dpi = 300)
 
 # Specific locations ------------------------------------------------------
