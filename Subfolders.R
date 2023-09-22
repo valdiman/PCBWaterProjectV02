@@ -1,6 +1,7 @@
 # Create subfolder within the current working directory
 
 dir.create("Data")
+dir.create("Data/PassaicRiver")
 dir.create("R")
 dir.create("R/Global")
 dir.create("R/Sites")
