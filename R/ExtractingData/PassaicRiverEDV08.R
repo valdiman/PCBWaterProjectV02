@@ -25,7 +25,6 @@ PS_data <- PS_data %>%
 PS_data <- PS_data %>%
   filter(ANALYTIC_METHOD == "E1668 AXYS MLA010", RESULT_UNIT == "pg/l")
 
-
 # Modify the CHEMICAL_NAME column to extract "PCB X" where X is the number
 PS_data <- PS_data %>%
   mutate(CHEMICAL_NAME = sub(".*\\(PCB (\\d+)\\).*", "PCB \\1", CHEMICAL_NAME))
@@ -46,6 +45,9 @@ transposed_data <- PS_data %>%
     values_from = RESULT_NUMERIC,
     values_fn = list  # Treat duplicate values as lists
   )
+
+# Read the JSON file with new congener list from code NewPCBList.R
+pcb_groups <- read_json("pcb_groups.json")
 
 # Define new PCB list
 pcb_groups <- list(
